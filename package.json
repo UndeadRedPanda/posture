@@ -1,0 +1,22 @@
+{
+  "name": "alternator",
+  "version": "1.0.0",
+  "description": "Mock SMTP and Mail server for development purposes",
+  "main": "index.ts",
+  "author": "William Théroux",
+  "license": "MIT",
+  "scripts": {
+    "build": "echo \"Build script not yet implemented\"",
+    "dev": "nodemon index.ts",
+    "lint": "eslint index.ts",
+    "start": "echo \"Start script not yet implemented. Should look a little something like this: 'npm run build & node dist/index.js'\"",
+    "test": "echo \"Test script not yet implemented.\""
+  },
+  "devDependencies": {
+    "@types/node": "^13.11.1",
+    "eslint": "^6.8.0",
+    "nodemon": "^2.0.3",
+    "ts-node": "^8.8.2",
+    "typescript": "^3.8.3"
+  }
+}
