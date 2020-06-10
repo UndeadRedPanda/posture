@@ -1,12 +1,15 @@
-import { DBType } from "../db/DBType";
+import { DBType } from "../db/DBType.ts";
 
 export interface SMTPOptions {
-	port?: Number,
-	host?: String,
+	port: number,
+	host: string,
+	useTLS: boolean,
+	cert?: string,
+	key?: string,
 	dbType?: DBType,
-	dbName?: String,
-	dbPort?: Number,
-	dbHost?: String,
-	dbUser?: String,
-	dbPass?: String,
+	dbName?: string,
+	dbPort?: number,
+	dbHost?: string,
+	dbUser?: string,
+	dbPass?: string,
 }

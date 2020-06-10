@@ -1,6 +1,6 @@
 export enum DBType {
 	SQLite = 'sqlite',
-	MySQL = 'mysql',
-	PostgreSQL = 'postgresql',
-	MongoDB = 'mongodb'
+	MySQL = 'mysql', // Currently unsupported
+	PostgreSQL = 'postgresql', // Currently unsupported
+	MongoDB = 'mongodb' // Currently unsupported
 }

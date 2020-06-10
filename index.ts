@@ -1,3 +1,7 @@
-import SMTP from './server';
+import { SMTP } from './server/index.ts';
 
-let smtp = SMTP({});
+SMTP({
+	port: 25,
+	host: '0.0.0.0',
+	useTLS: false,
+});

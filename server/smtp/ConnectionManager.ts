@@ -10,6 +10,7 @@ export function createConnection(socket: Socket): Connection {
 	do {
 		id = Math.floor(Math.random() * 9999999999);
 	} while( connections.hasOwnProperty(`x${id}`));
+	
 	let c = makeConnection(socket, id);
 	connections[`x${id}`] = c;
 	openConnections++;

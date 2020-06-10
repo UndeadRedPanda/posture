@@ -1,7 +1,6 @@
-import createSMTPServer from "./smtp";
-import { Server } from "net";
-import { SMTPOptions } from "./smtp/SMTPOptions";
+import { createSMTPServer } from "./smtp/SMTPServer.ts";
+import { SMTPOptions } from "./smtp/SMTPOptions.ts";
 
-export default function SMTP(opts: SMTPOptions): Server {
-	return createSMTPServer(opts);
+export function SMTP(opts: SMTPOptions) {
+	createSMTPServer(opts);
 }
