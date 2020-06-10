@@ -1,63 +1,96 @@
-import { Socket } from "net";
+import { ConnectionManager } from "./ConnectionManager.ts";
+import { getConfig } from "../config.ts";
+import { bold, yellow } from "../deps.ts";
 
-export interface Connection {
-	readonly id: number;
-	readonly connectionTime: Date;
-	readonly isExtended: boolean;
-	readonly commands: string[];
-	readonly socket: Socket;
-	ip(): string;
-	on(event: string, listener: (...args: any[]) => void): Connection;
-	off(event: string, listener: (...args: any[]) => void): Connection;
-	write(buffer: string, cb?: (err?: Error) => void): boolean;
-	end(cb?: (err?: Error) => void): void;
-	extend(): void;
-	addCommand(command: string): void;
-}
+export class Connection {
+	readonly connectedAt: Date = new Date();
 
-export function makeConnection(socket: Socket, randomId: number): Connection {
-	let _date = new Date();
-	let _commands = [];
-	let _extended = false;
-	let c = {
-		get id() { return randomId; },
-		get connectionTime() { return _date; },
-		get isExtended() { return _extended; },
-		get commands() { return [..._commands]; },
-		get socket() {
-			return socket;
-		},
-		
-		ip: () => {
-			return socket.remoteAddress;
-		},
+	private _manager: ConnectionManager;
+
+	private _commands: string[] = [];
+	get commands() {
+		return [...this._commands];
+	}
+
+	private _connection: Deno.Conn;
+
+	// TODO (William): Figure out how to listen to a connection to see when it closes
+	private _opened: boolean = true;
+	get opened() {
+		return this._opened;
+	}
+
+	private _extended: boolean = false;
+	get extended() {
+		return this._extended;
+	}
+
+	public requests: AsyncGenerator<Uint8Array, any, void>;
+
+	constructor(conn: Deno.Conn, manager: ConnectionManager) {
+		this._connection = conn;
+		this._manager = manager;
+		this.requests = this.readFromConnection();
+
+		if (getConfig().debug) {
+			this._log("New connection opened.");
+		}
+	}
+
+	getIp(): string {
+		return (this._connection.remoteAddr as Deno.NetAddr).hostname;
+	}
+
+	getRid(): number {
+		return this._connection.rid;
+	}
 	
-		on: (event, listener) => {
-			socket.on(event, listener.bind(c));
-			return c;
-		},
-		
-		off: (event, listener) => {
-			socket.off(event, listener.bind(c));
-			return c;
-		},
-		
-		write: (buffer, cb?) => {
-			return socket.write(buffer, cb);
-		},
-		
-		end: (cb?) => {
-			socket.end(cb);
-		},
+	async write(buffer: Uint8Array): Promise<Connection> {
+		try {
+			await this._connection.write(buffer);
+		} catch (err) {
+			console.error(err);
+		}
 
-		extend: () => {
-			_extended = true;
-		},
-		
-		addCommand: (command) => {
-			_commands.push(command);
-		},
-	};
-	return c;
+		return this;
+	}
+
+	async * readFromConnection(): AsyncGenerator<Uint8Array, any, void> {
+		const buffer = new Deno.Buffer();
+		try {
+			while(await Deno.copy(this._connection, buffer)) {
+				yield buffer.bytes();
+				buffer.empty();
+			}
+		} catch (err) {
+			console.error(err);
+		}
+	}
+	
+	close() {
+		if (this._opened) {
+			this._opened = false;
+			this._connection.close();
+
+			if (getConfig().debug) {
+				this._log("Connection was closed.");
+			}
+		}
+	}
+
+	extend(): Connection {
+		this._extended = true;
+		return this;
+	}
+	
+	// TODO (William): Figure out how to read a connection to add commands
+	addCommand(command: string): Connection {
+		this._commands.push(command);
+		return this;
+	}
+
+	private _log(message: string) {
+		console.log(`ℹ️  ${bold(yellow(`[IP: ${this.getIp()}][RID: ${this.getRid()}]`))} ${bold(this.connectedAt.toISOString())} - ${message}`);
+	}
 }
 

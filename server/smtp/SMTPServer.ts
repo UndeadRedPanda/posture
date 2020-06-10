@@ -1,23 +1,17 @@
-
-import { 
-	serve, 
-	serveTLS, 
-	HTTPOptions, 
-	HTTPSOptions 
-} from 'https://deno.land/std@0.56.0/http/server.ts';
-
+import { HTTPOptions, HTTPSOptions } from '../deps.ts';
+import { getConfig } from '../config.ts';
 import { SMTPOptions } from './SMTPOptions.ts';
-// import connectionHandler from './ConnectionHandler';
+import { handleConnection } from './ConnectionHandler.ts';
 
 export async function createSMTPServer(opts: SMTPOptions) {
-	const server = opts.useTLS 
-		? serveTLS(createHTTPSOptions(opts))
-		: serve(createHTTPOptions(opts));
+	const listener = opts.useTLS 
+		? Deno.listenTls(createHTTPSOptions(opts))
+		: Deno.listen(createHTTPOptions(opts));
 
 	console.log(`🌎 SMTP Server listening at ${opts.host}:${opts.port}.`);
 
-	for await (const request of server) {
-		console.log(request);
+	for await (const conn of listener) {
+		handleConnection(conn);
 	}
 }
 

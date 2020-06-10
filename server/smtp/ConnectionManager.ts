@@ -1,22 +1,32 @@
-import { Socket } from "net";
-import { Connection, makeConnection } from "./Connection";
+import { Connection } from "./Connection.ts";
+import { encodeStringToUint8Array } from "../utils.ts";
+import { getConfig } from "../config.ts";
 
-let connections = {};
-let openConnections = 0;
+const limit = getConfig().connectionLimit;
 
-export function createConnection(socket: Socket): Connection {
-	// TODO (William): Limit connections to threshold set in configuration
-	let id;
-	do {
-		id = Math.floor(Math.random() * 9999999999);
-	} while( connections.hasOwnProperty(`x${id}`));
-	
-	let c = makeConnection(socket, id);
-	connections[`x${id}`] = c;
-	openConnections++;
-	c.on("close", () => {
-		delete connections[`x${id}`];
-		openConnections--;
-	});
-	return c;
+export class ConnectionManager {
+	private _connections: Connection[] = [];
+
+	async addConnection(conn: Deno.Conn): Promise<Connection> {
+		const connection = new Connection(conn, this);
+		
+		this._connections.push(connection);
+
+		if (this._connections.length > limit) {
+			await connection.write(encodeStringToUint8Array("Connection limit exceeded"));
+			this.removeConnection(connection);
+		}
+
+		return connection;
+	}
+
+	removeConnection(connection: Connection) {
+		const index = this._connections.indexOf(connection);
+		this._connections.splice(index, 1);
+		if (connection.opened) {
+			connection.close();
+		}
+	}
 }
+
+export const connectionManager = new ConnectionManager();

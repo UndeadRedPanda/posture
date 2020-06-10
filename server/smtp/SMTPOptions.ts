@@ -1,4 +1,4 @@
-import { DBType } from "../db/DBType.ts";
+import { DBType } from "../db.ts";
 
 export interface SMTPOptions {
 	port: number,
