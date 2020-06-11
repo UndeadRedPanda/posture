@@ -5,5 +5,8 @@ export {
 
 export { 
 	bold, 
-	yellow
+	yellow,
+	gray,
+	red,
+	blue
  } from "https://deno.land/std@0.56.0/fmt/colors.ts";
