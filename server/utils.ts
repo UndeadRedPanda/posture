@@ -15,6 +15,14 @@ export function encodeStringToUint8Array(str: string): Uint8Array {
 	return encoder.encode(str);
 }
 
+export function getValue<T extends Object, V>(opts: T, key: string, isMandatory: boolean):V {
+	if (!opts.hasOwnProperty(key) && isMandatory) {
+		throw new Deno.errors.BadResource(`Key ${key} is mandatory for this object`);
+	}
+
+	return opts[key];
+}
+
 export const log = {
 	default: (message: string) => {
 		console.log(message);

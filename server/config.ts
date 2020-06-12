@@ -1,15 +1,19 @@
 // TODO (William): Allow config to be set outside of this file.
 
 export interface Configuration {
-	connectionLimit: number;
+	connection: {
+		limit: number,
+		buffer: number,
+	};
 	debug: boolean;
-	pingInterval: number;
 }
 
 export function getConfig(): Configuration {
 	return {
-		connectionLimit: 1,
+		connection: {
+			limit: 1,
+			buffer: 1024
+		},
 		debug: true,
-		pingInterval: 10000,
 	}
 }

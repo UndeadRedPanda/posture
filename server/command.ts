@@ -1,5 +1,3 @@
-
-
 export enum Command {
 	HELO,
 	FROM,
@@ -17,10 +15,6 @@ export enum Command {
 	HELP
 };
 
-export function readMessage(data: Buffer): Command {
-	return Command.QUIT;
-}
-
-export function isExtendedMode() {
-
+export class CommandParser {
+	
 }
