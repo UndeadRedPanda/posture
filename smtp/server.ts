@@ -48,6 +48,7 @@ export class SMTPServer {
 		this.database = this._connectToDb(opts);
 		this.manager = new ConnectionManager(this.database);
 		
+		this._setConfig(opts.configPath);
 		this._connect(opts);
 	}
 
@@ -90,5 +91,11 @@ export class SMTPServer {
 			certFile: this.cert,
 			keyFile: this.key,
 		 };
+	}
+
+	private _setConfig(config: string | undefined) {
+		if (config) {
+			Configuration.setConfigWithPath(config);
+		}
 	}
 }

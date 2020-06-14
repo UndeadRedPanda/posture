@@ -1,3 +1,5 @@
 import { SMTPServer } from './smtp/mod.ts';
 
-new SMTPServer({});
+new SMTPServer({
+	configPath: './posture-smtp.json'
+});

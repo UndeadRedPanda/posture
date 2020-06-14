@@ -1,5 +1,7 @@
 // TODO (William): Allow config to be set outside of this file.
 
+import { readJson } from "./deps.ts";
+
 export interface ConfigurationOptions {
 	maxConnections: number;
 	debug: boolean;
@@ -17,12 +19,13 @@ export class Configuration {
 		return { ...config };
 	}
 
-	static setConfig(newConfig: Configuration): void {
-		config = { ...config, ...newConfig};
+	static async setConfigWithPath(configPath: string) {
+		let json: unknown = await readJson(configPath);
+		this.setConfig(json as ConfigurationOptions);
 	}
 
-	static setConfigWithPath(configPath: string) {
-		
+	static setConfig(newConfig: ConfigurationOptions): void {
+		config = { ...config, ...newConfig};
 	}
 
 	static isDebug(): boolean {

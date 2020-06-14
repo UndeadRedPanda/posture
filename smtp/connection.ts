@@ -10,12 +10,15 @@ import {
 } from "./deps.ts";
 import { log } from "./utils.ts";
 import { Database } from "./database.ts";
-import { Command, CommandParser } from "./command.ts";
+import { Command, CommandParser, CommandData } from "./command.ts";
 import { Configuration } from "./configuration.ts";
 
 export class ConnectionManager {
 	private _connections: Connection[] = [];
 	readonly database: Database;
+
+	private _buffer: CommandData[][] = [];
+	private _submitting: boolean = false;
 
 	constructor(database: Database) {
 		this.database = database;
@@ -40,10 +43,20 @@ export class ConnectionManager {
 		if (index > -1) {
 			this._connections.splice(index, 1);
 		}
+		if (connection.quitting) {
+			this._buffer.push(connection.commands);
+			this._submitData();
+		}
 		try {
 			await connection.close(isDropped ? "Connection dropped" : "Concurrent connection limit reached");
 		} catch (err) {
 			// Do nothing somehow we couldn't close
+		}
+	}
+
+	private _submitData() {
+		if (!this._submitting) {
+			this._submitting = true;
 		}
 	}
 }
@@ -56,23 +69,23 @@ export class Connection {
 
 	private _removeConnectionFn: Function;
 
-	private _commands: string[] = [];
+	private _commands: CommandData[] = [];
 	get commands() {
 		return [...this._commands];
 	}
 
 	readonly conn: Deno.Conn;
 
+	private _started: boolean = false;
+
+	private _quitting: boolean = false;
+	get quitting() {
+		return this._quitting;
+	}
+
 	private _closed: boolean = false;
 	get closed() {
 		return this._closed;
-	}
-
-	private _started: boolean = false;
-
-	private _extended: boolean = false;
-	get extended() {
-		return this._extended;
 	}
 
 	private _reader: BufReader;
@@ -86,7 +99,6 @@ export class Connection {
 		this._removeConnectionFn = removeConnectionFn;
 		this.requests = this._readFromConnection();
 		this._writer = new BufWriter(conn);
-		// this._reader = new TextProtoReader(new BufReader(conn));
 		this._reader = new BufReader(conn);
 
 		if (Configuration.isDebug()) {
@@ -94,23 +106,6 @@ export class Connection {
 		}
 
 		this._handleData();
-	}
-
-	private async _handleData() {
-		for await (let data of this.requests) {
-			let index = data.indexOf(" ");
-			let command = data.substring(0, index > -1 ? index : undefined);
-			this.commandParser.setCommandFromString(command);
-
-			if (!this._started) {
-				let isHELO = this.commandParser.command === Command.HELO;
-				let isEHLO = this.commandParser.command === Command.EHLO;
-				this._started =  isHELO || isEHLO;
-				this._extended = isEHLO;
-			}
-			// Check if the first word matches a command
-			console.log(data);
-		}
 	}
 
 	getIp(): string {
@@ -121,7 +116,6 @@ export class Connection {
 		return this.conn.rid;
 	}
 	
-	// TODO (William): Rewrite the way we read/write data based on https://github.com/manyuanrong/deno-smtp/blob/master/smtp.ts (BufWriter, BufReader, TextProtoReader)
 	async writeString(str: string): Promise<Connection> {
 		await this.write(encode(str));
 
@@ -150,18 +144,64 @@ export class Connection {
 		}
 	}
 
-	extend(): Connection {
-		this._extended = true;
-		return this;
+	private async _handleData() {
+		for await (let data of this.requests) {
+			this.commandParser.setCommandData(data);
+
+			if (typeof this.commandParser.command !== 'undefined') {
+				let commandData = this.commandParser.getCommandData();
+				let { command } = commandData; 
+				
+				switch (command) {
+					case Command.HELO:
+					case Command.EHLO:
+					case Command.RSET:
+						this._startCommand(command === Command.RSET);
+						break;
+					case Command.MAIL:
+					case Command.RCPT:
+					case Command.DATA:
+						this._addCommand(commandData);
+						break;
+					case Command.HELP:
+						this._showHelp(commandData);
+						break;
+					case Command.VRFY:
+						this._verify(commandData);
+						break;
+					case Command.EXPN:
+						this._expand(commandData);
+						break;
+					case Command.QUIT:
+						this._quit();
+					case Command.NOOP:
+					default:
+						// There's really nothing to do here.
+						break;
+				}
+			}
+		}
 	}
-	
-	addCommand(command: string): Connection {
-		this._commands.push(command);
-		return this;
+
+	private _addCommand(commandData: CommandData) {
+		// TODO (William);
+		this.writeString("250 OK\n");
+	}
+
+	private _expand(commandData: CommandData) {
+		// TODO (William);
+		this.writeString("250 OK\n");
 	}
 
 	private _log(message: string) {
 		log.default(`ℹ️  ${bold(yellow(`[IP: ${this.getIp()}][RID: ${this.getRid()}]`))} ${bold(this.connectedAt.toISOString())} - ${message}`);
+	}
+
+	private _quit() {
+		// TODO (William);
+		this.writeString("250 OK\n");
+		this._quitting;
+		this.close();
 	}
 
 	private async * _readFromConnection(): AsyncGenerator<string, any, void> {
@@ -206,4 +246,24 @@ export class Connection {
 	private async _removeDroppedConnection() {
 		this._removeConnectionFn(this, true);
 	} 
+
+	private _showHelp(commandData: CommandData) {
+		this.writeString("This is the help information\n");
+	}
+
+	private _startCommand(isReset: boolean = false) {
+		if (isReset && !this._started) {
+			return;
+		} else if (!isReset) {
+			this._started = true;
+		}
+
+		this._commands = [];
+		this.writeString("250 OK\n");
+	}
+
+	private _verify(commandData: CommandData) {
+		// TODO (William);
+		this.writeString("250 OK\n");
+	}
 }
