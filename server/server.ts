@@ -1,12 +1,17 @@
 import { HTTPOptions, HTTPSOptions } from './deps.ts';
-import { Connection, ConnectionManager } from './connection.ts';
+import { ConnectionManager } from './connection.ts';
 import { DBType, Database, DatabaseOptions } from "./database.ts";
-import { getValue } from './utils';
+import { getValue } from './utils.ts';
 
+/**
+ * SMTPOptions lists all options for the SMTPServer.
+ * 
+ * None are required as SMTPServer has default alternatives set in place.
+ */
 export interface SMTPOptions {
 	port?: number,
 	host?: string,
-	useTLS: boolean,
+	useTLS?: boolean,
 	cert?: string,
 	key?: string,
 	dbType?: DBType,
@@ -17,6 +22,9 @@ export interface SMTPOptions {
 	dbPass?: string,
 }
 
+/**
+ * SMTPServer is the base server that will take in SMTP commands and save the results to a database for the client
+ */
 export class SMTPServer {
 	readonly manager: ConnectionManager;
 	readonly database: Database;
@@ -25,16 +33,16 @@ export class SMTPServer {
 	readonly cert: string;
 	readonly key: string;
 
-	private _listener: Deno.Listener;
+	private _listener: Deno.Listener | undefined;
 	get listener() {
 		return this._listener;
 	}
 
-	constructor(opts: SMTPOptions) {
+	constructor(opts: SMTPOptions = {}) {
 		this.hostname = opts.host || "0.0.0.0";
-		this.port = opts.port || (opts.useTLS ? 465 : 25);
-		this.cert = getValue(opts, "cert", !!opts.useTLS);
-		this.key = getValue(opts, "key", !!opts.useTLS);
+		this.port = opts.port || (!!opts.useTLS ? 465 : 25);
+		this.cert = getValue(opts, "cert", !!opts.useTLS) as string;
+		this.key = getValue(opts, "key", !!opts.useTLS) as string;
 		this.database = this._connectToDb(opts);
 		this.manager = new ConnectionManager(this.database);
 		
@@ -42,13 +50,13 @@ export class SMTPServer {
 	}
 
 	private async _connect(opts: SMTPOptions) {
-		this._listener = opts.useTLS 
+		this._listener = !!opts.useTLS 
 			? Deno.listenTls(this._createHTTPSOptions(opts))
 			: Deno.listen(this._createHTTPOptions(opts));
 
-		console.log(`🌎 SMTP Server listening at ${opts.host}:${opts.port}.`);
+		console.log(`🌎 SMTP Server listening at ${this.hostname}:${this.port}.`);
 		
-		for await (const conn of this.listener) {
+		for await (const conn of this._listener) {
 			this.manager.addConnection(conn);
 		}
 	}

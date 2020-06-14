@@ -1,7 +1,17 @@
 import { getConfig } from "./config.ts";
-import { bold, yellow, gray } from "./deps.ts";
-import { log, encodeStringToUint8Array } from "./utils.ts";
-import { Database } from "./database";
+import { 
+	bold, 
+	yellow, 
+	gray, 
+	BufReader, 
+	BufWriter, 
+	encode, 
+	decode,
+	concat
+} from "./deps.ts";
+import { log } from "./utils.ts";
+import { Database } from "./database.ts";
+import { Command, CommandParser } from "./command.ts";
 
 export class ConnectionManager {
 	private _connections: Connection[] = [];
@@ -16,7 +26,7 @@ export class ConnectionManager {
 		const connection = new Connection(conn, this.removeConnection);
 
 		if (this._connections.length >= config.connection.limit) {
-			await connection.write(encodeStringToUint8Array("Connection limit exceeded"));
+			await connection.writeString("Connection limit exceeded");
 			await this.removeConnection(connection);
 		} else {
 			this._connections.push(connection);
@@ -40,6 +50,8 @@ export class ConnectionManager {
 
 
 export class Connection {
+	readonly commandParser: CommandParser = new CommandParser();
+
 	readonly connectedAt: Date = new Date();
 
 	private _removeConnectionFn: Function;
@@ -56,20 +68,48 @@ export class Connection {
 		return this._closed;
 	}
 
+	private _started: boolean = false;
+
 	private _extended: boolean = false;
 	get extended() {
 		return this._extended;
 	}
 
-	public requests: AsyncGenerator<Uint8Array, any, void>;
+	private _reader: BufReader;
+
+	private _writer: BufWriter;
+
+	public requests: AsyncGenerator<string, any, void>;
 
 	constructor(conn: Deno.Conn, removeConnectionFn: Function) {
 		this.conn = conn;
 		this._removeConnectionFn = removeConnectionFn;
 		this.requests = this._readFromConnection();
+		this._writer = new BufWriter(conn);
+		// this._reader = new TextProtoReader(new BufReader(conn));
+		this._reader = new BufReader(conn);
 
 		if (getConfig().debug) {
 			this._log("New connection opened.");
+		}
+
+		this._handleData();
+	}
+
+	private async _handleData() {
+		for await (let data of this.requests) {
+			let index = data.indexOf(" ");
+			let command = data.substring(0, index > -1 ? index : undefined);
+			this.commandParser.setCommandFromString(command);
+
+			if (!this._started) {
+				let isHELO = this.commandParser.command === Command.HELO;
+				let isEHLO = this.commandParser.command === Command.EHLO;
+				this._started =  isHELO || isEHLO;
+				this._extended = isEHLO;
+			}
+			// Check if the first word matches a command
+			console.log(data);
 		}
 	}
 
@@ -83,14 +123,15 @@ export class Connection {
 	
 	// TODO (William): Rewrite the way we read/write data based on https://github.com/manyuanrong/deno-smtp/blob/master/smtp.ts (BufWriter, BufReader, TextProtoReader)
 	async writeString(str: string): Promise<Connection> {
-		await this.write(encodeStringToUint8Array(str));
+		await this.write(encode(str));
 
 		return this;
 	}
 
 	async write(buffer: Uint8Array): Promise<Connection> {
 		try {
-			await this.conn.write(buffer);
+			await this._writer.write(buffer);
+			await this._writer.flush();
 		} catch (err) {
 			this._removeDroppedConnection();
 		}
@@ -123,21 +164,43 @@ export class Connection {
 		log.default(`ℹ️  ${bold(yellow(`[IP: ${this.getIp()}][RID: ${this.getRid()}]`))} ${bold(this.connectedAt.toISOString())} - ${message}`);
 	}
 
-	private async * _readFromConnection(): AsyncGenerator<Uint8Array, any, void> {
-		let data = new Uint8Array(1024);
+	private async * _readFromConnection(): AsyncGenerator<string, any, void> {
 		// NOTE (William): We're assuming that if a connection returns EOF (null), we're not connected anymore. 
 		// I haven't searched for litterature that confirms this, but it seems logical enough.
 		try {
 			while(!this._closed) { 
-				let length = await this.conn.read(data);
-				if (length === null) {
+				let str = await this._readLine();
+				if (str === null) {
 					this._removeDroppedConnection();
-					return new Uint8Array(0);
+					return "";
 				}
-				yield data.slice(0, length === null ? 0 : length);
+				yield str;
 			}
 		} catch (err) {
 		}
+	}
+
+	private async _readLine(): Promise<string | null> {
+		let line: Uint8Array | undefined;
+
+		while(true) {
+			let result = await this._reader.readLine();
+			if (result === null) {
+				return null;
+			}
+			let {line: l, more} = result;
+
+			if(!line && !more) {
+				return decode(l);
+			}
+
+			line = line ? concat(line, l) : concat(new Uint8Array(), l);
+
+			if (!more) {
+				break;
+			}
+		}
+		return decode(line);
 	}
 
 	private async _removeDroppedConnection() {

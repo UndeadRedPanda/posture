@@ -1,7 +1,7 @@
+// TODO (William): Replace with ws?
+
 export enum DBType {
 	MongoDB,
-	MySQL, // Currently unsupported
-	PostgreSQL, // Currently unsupported
 }
 
 export interface DatabaseOptions {
@@ -15,13 +15,26 @@ export interface DatabaseOptions {
 
 export class Database {
 	readonly type: DBType;
-	readonly conn: Deno.Conn;
+	private _conn: Deno.Conn | undefined;
+
 	constructor(opts: DatabaseOptions) {
 		this.type = opts.type;
-		this._connect(opts);
+		// this._connect(opts);
 	}
 
-	private _connect(opts: DatabaseOptions) {
+	private async _connect(opts: DatabaseOptions) {
+		this._conn = await Deno.connect({
+			hostname: this._getHostFromType(this.type, opts),
+			port: opts.port,
+		});
+	}
 
+	private _getHostFromType(type: DBType, opts: DatabaseOptions): string {
+		switch(type) {
+			case DBType.MongoDB:
+				return `mongodb://${opts.user}:${opts.pass}@${opts.host}:${opts.port}/?replicaSet=${opts.name}`;
+			default:
+				throw new Deno.errors.BadResource("Unsupported Database type");
+		}
 	}
 }
