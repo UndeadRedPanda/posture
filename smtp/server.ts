@@ -2,6 +2,7 @@ import { HTTPOptions, HTTPSOptions } from './deps.ts';
 import { ConnectionManager } from './connection.ts';
 import { DBType, Database, DatabaseOptions } from "./database.ts";
 import { getValue } from './utils.ts';
+import { Configuration } from './configuration.ts';
 
 /**
  * SMTPOptions lists all options for the SMTPServer.
@@ -20,6 +21,7 @@ export interface SMTPOptions {
 	dbHost?: string,
 	dbUser?: string,
 	dbPass?: string,
+	configPath?: string,
 }
 
 /**

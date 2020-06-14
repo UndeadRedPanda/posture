@@ -1,3 +1,3 @@
-import { SMTPServer } from './server/mod.ts';
+import { SMTPServer } from './smtp/mod.ts';
 
 new SMTPServer({});

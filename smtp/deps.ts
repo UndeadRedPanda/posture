@@ -24,3 +24,9 @@ export {
 	red,
 	blue
  } from "https://deno.land/std@0.56.0/fmt/colors.ts";
+
+export {
+	readJson
+ } from "https://deno.land/std@0.56.0/fs/read_json.ts";
+
+// export * as DenoDB from 'https://deno.land/x/denodb@v1.0.0/mod.ts';

@@ -1,4 +1,3 @@
-import { getConfig } from "./config.ts";
 import { 
 	bold, 
 	yellow, 
@@ -12,6 +11,7 @@ import {
 import { log } from "./utils.ts";
 import { Database } from "./database.ts";
 import { Command, CommandParser } from "./command.ts";
+import { Configuration } from "./configuration.ts";
 
 export class ConnectionManager {
 	private _connections: Connection[] = [];
@@ -25,7 +25,7 @@ export class ConnectionManager {
 	async addConnection(conn: Deno.Conn): Promise<Connection> {
 		const connection = new Connection(conn, this.removeConnection);
 
-		if (this._connections.length >= config.connection.limit) {
+		if (this._connections.length >= Configuration.maxConnections()) {
 			await connection.writeString("Connection limit exceeded");
 			await this.removeConnection(connection);
 		} else {
@@ -89,7 +89,7 @@ export class Connection {
 		// this._reader = new TextProtoReader(new BufReader(conn));
 		this._reader = new BufReader(conn);
 
-		if (getConfig().debug) {
+		if (Configuration.isDebug()) {
 			this._log("New connection opened.");
 		}
 
@@ -144,7 +144,7 @@ export class Connection {
 			this._closed = true;
 			this.conn.close();
 
-			if (getConfig().debug) {
+			if (Configuration.isDebug()) {
 				this._log(`Connection was closed. ${gray(`(${reason})`)}`);
 			}
 		}
@@ -207,5 +207,3 @@ export class Connection {
 		this._removeConnectionFn(this, true);
 	} 
 }
-
-const config = getConfig();
