@@ -91,7 +91,7 @@ Here's a list of the tasks that are left to do:
 - [Section 4.1](https://tools.ietf.org/html/rfc2821#section-4.1)
 
 ## Notes
-This is my foray into actual FOSS I want to put out into the world. I'm super open to PRs and/or suggestions on how to properly maintain and collaborate these kinds of things. If you see something in this README that doesn't make sense, feel free to create an issue with your recommendations!
+This is my foray into actual FOSS I want to put out into the world. I'm super open to PRs and/or suggestions on how to properly maintain and collaborate on these kinds of things. If you see something in this README that doesn't make sense, feel free to create an issue with your recommendations!
 
 ## Fun Facts
 I chose the name Posture because this is a tool written with Deno to test part of a communication system and dinosaurs used their posture to communicate certain things.<sup>[citation needed]</sup>
