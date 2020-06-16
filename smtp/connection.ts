@@ -11,20 +11,14 @@ import {
 	Deferred
 } from "./deps.ts";
 import { log } from "./utils.ts";
-import { Database } from "./database.ts";
-import { Command, CommandParser, CommandData } from "./command.ts";
+import { Command, CommandHandler, CommandData, CommandMessage } from "./command.ts";
 import { Configuration } from "./configuration.ts";
 import * as CONST from "./constants.ts";
 
 export class ConnectionManager {
 	private _connections: Connection[] = [];
-	readonly database: Database;
 
-	private _buffer: CommandData[][] = [];
-	private _submitting: boolean = false;
-
-	constructor(database: Database) {
-		this.database = database;
+	constructor() {
 		this.removeConnection = this.removeConnection.bind(this);
 	}
 
@@ -40,10 +34,7 @@ export class ConnectionManager {
 
 		this._connections.push(connection);
 
-		connection.start();
-
-		// FIXME (William): The await inside listenForData seems to stop the connection from dropping
-		this._listenForData(connection);
+		connection.startConnection();
 
 		return connection;
 	}
@@ -53,20 +44,10 @@ export class ConnectionManager {
 		if (index > -1) {
 			this._connections.splice(index, 1);
 		}
-		if (connection.quitting) {
-			this._buffer.push(connection.commands);
-		}
 		try {
 			await connection.close(reason);
 		} catch (err) {
 			// Do nothing somehow we couldn't close
-		}
-	}
-
-	private async _listenForData(connection: Connection) {
-		for await (let commands of connection.messages) {
-			console.log(commands);
-			// TODO (William): Save data
 		}
 	}
 }
@@ -74,46 +55,39 @@ export class ConnectionManager {
 export type RemoveConnectionFn = {(connection: Connection, reason: string): void};
 
 export class Connection {
-	readonly commandParser: CommandParser = new CommandParser();
-
-	readonly connectedAt: Date = new Date();
-
-	private _removeConnectionFn: RemoveConnectionFn;
-
-	private _commands: CommandData[] = [];
-	get commands() {
-		return [...this._commands];
-	}
+	readonly commandHandler: CommandHandler = new CommandHandler();
 
 	readonly conn: Deno.Conn;
 
-	private _started: boolean = false;
+	readonly connectedAt: Date = new Date();
 
-	private _quitting: boolean = false;
-	get quitting() {
-		return this._quitting;
-	}
-
-	private _dropped: boolean = false;
+	public requests: AsyncGenerator<string, any, void> = this._readFromConnection();
 
 	private _closed: boolean = false;
 	get closed() {
 		return this._closed;
 	}
 
+	private _dropped: boolean = false;
+
 	get open(): boolean {
 		return !this._closed && !this._dropped && !this._quitting;
 	}
 
+	private _quitting: boolean = false;
+	get quitting() {
+		return this._quitting;
+	}
+
 	private _reader: BufReader;
 
+	private _removeConnectionFn: RemoveConnectionFn;
+
+	private _signal: Deferred<CommandMessage> = deferred();
+
+	private _started: boolean = false;
+
 	private _writer: BufWriter;
-
-	private _signal: Deferred<CommandData[]> = deferred();
-
-	public requests: AsyncGenerator<string, any, void> = this._readFromConnection();
-
-	public messages: AsyncGenerator<CommandData[], any, void> = this._getMessages();
 
 	constructor(conn: Deno.Conn, removeConnectionFn: RemoveConnectionFn) {
 		this.conn = conn;
@@ -134,13 +108,13 @@ export class Connection {
 		return this.conn.rid;
 	}
 
-	async start() {
+	async startConnection() {
 		this._welcome();
 		this._handleData();
 	}
 	
 	async writeLine(str: string): Promise<this> {
-		if (!str.match(/\n$/)) str = `${str}\n`;
+		str = `${str.trim()}\r\n`;
 		await this.write(encode(str));
 
 		return this;
@@ -168,16 +142,15 @@ export class Connection {
 		}
 	}
 
-	private _data(commandData: CommandData) {
-		// TODO (William);
-		let commands: CommandData[] = [];
-		commands.push({ command: Command.MAIL, data: "FROM: email"});
-		commands.push({ command: Command.RCPT, data: "TO: email"});
-		commands.push({ command: Command.DATA, data: "This is my email data"});
-
-		this._signal.resolve(commands);
-		this._signal = deferred();
-		this._returnOK();
+	private _data(commandData: CommandData, end: boolean = false) {
+		if (!end) {
+			this.writeLine("354 Begin data");
+		} else if (end) {
+			this._signal.resolve(this.commandHandler.message);
+			this._signal = deferred();
+			this.commandHandler.clear();
+			this._returnOK();
+		}
 	}
 
 	private _expand(commandData: CommandData) {
@@ -185,32 +158,19 @@ export class Connection {
 		this._returnOK();
 	}
 
-	private async * _getMessages(): AsyncGenerator<CommandData[], any, void> {
-		while(this.open) {
-			try {
-				let message = await this._signal;
-				yield message;
-			} catch (err) {
-				this._removeDroppedConnection();
-				return;
-			}
-		}
-		return;
-	}
-
 	private async _handleData() {
 		for await (let data of this.requests) {
-			this.commandParser.setCommandData(data);
+			this.commandHandler.setCommandData(data);
 
-			if (typeof this.commandParser.command !== 'undefined') {
-				let commandData = this.commandParser.getCommandData();
+			if (typeof this.commandHandler.command !== 'undefined') {
+				let commandData = this.commandHandler.getCommandData();
 				let { command } = commandData; 
 				
 				switch (command) {
 					case Command.HELO:
 					case Command.EHLO:
 					case Command.RSET:
-						this._startCommand(command === Command.RSET);
+						this._startCommand(commandData);
 						break;
 					case Command.MAIL:
 						this._mail(commandData);
@@ -237,8 +197,11 @@ export class Connection {
 						this._returnOK();
 						break;
 					default:
-						this.writeLine("503 invalid command");
-						// TODO (William): Figure out what an invalid command should return
+						if (!this.commandHandler.isData) {
+							this._returnInvalid("Invalid command");
+						} else if (this.commandHandler.readyToSend) {
+							this._data(commandData, true);
+						}
 						break;
 				}
 			}
@@ -246,7 +209,7 @@ export class Connection {
 	}
 
 	private _help(commandData: CommandData) {
-		this.writeLine("This is the help information\n");
+		this.writeLine("This is the help information");
 	}
 
 	private _log(message: string) {
@@ -307,24 +270,35 @@ export class Connection {
 		return decode(line);
 	}
 
-	private async _removeDroppedConnection() {
+	private _removeDroppedConnection() {
 		this._dropped = true;
 		this._signal.reject();
 		this._removeConnectionFn(this, "Connection dropped");
 	} 
 
-	private async _returnOK() {
-		this.writeLine("250 OK\n");
+	private _returnInvalid(reason: string) {
+		this.writeLine(`554 ${reason}`);
 	}
 
-	private _startCommand(isReset: boolean = false) {
+	private _returnOK() {
+		this.writeLine("250 OK");
+	}
+
+	private _startCommand(commandData: CommandData) {
+		let isReset = commandData.command === Command.RSET;
+		let isExtendedHello = commandData.command === Command.EHLO;
+
 		if (isReset && !this._started) {
 			return;
-		} else if (!isReset) {
+		} else if (!isReset && !this._started) {
 			this._started = true;
+
+			if (isExtendedHello) {
+				// TODO (William): Implement the response format
+			}
 		}
 
-		this._commands = [];
+		this.commandHandler.clear();
 		this._returnOK();
 	}
 

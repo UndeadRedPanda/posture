@@ -1,6 +1,6 @@
 import { HTTPOptions, HTTPSOptions } from './deps.ts';
 import { ConnectionManager } from './connection.ts';
-import { DBType, Database, DatabaseOptions } from "./database.ts";
+import { DBType, Database, DatabaseOptions } from "./database/mod.ts";
 import { getValue } from './utils.ts';
 import { Configuration } from './configuration.ts';
 
@@ -29,7 +29,6 @@ export interface SMTPOptions {
  */
 export class SMTPServer {
 	readonly manager: ConnectionManager;
-	readonly database: Database;
 	readonly hostname: string;
 	readonly port: number;
 	readonly cert: string;
@@ -45,8 +44,7 @@ export class SMTPServer {
 		this.port = opts.port || (!!opts.useTLS ? 465 : 25);
 		this.cert = getValue(opts, "cert", !!opts.useTLS) as string;
 		this.key = getValue(opts, "key", !!opts.useTLS) as string;
-		this.database = this._connectToDb(opts);
-		this.manager = new ConnectionManager(this.database);
+		this.manager = new ConnectionManager();
 		
 		this._setConfig(opts.configPath);
 		this._connect(opts);
@@ -64,18 +62,18 @@ export class SMTPServer {
 		}
 	}
 
-	private _connectToDb(opts: SMTPOptions): Database {
-		let dbOptions: DatabaseOptions = {
-			host: opts.dbHost || "localhost",
-			port: opts.dbPort || 27017,
-			type: opts.dbType || DBType.MongoDB,
-			user: opts.dbUser || "",
-			pass: opts.dbPass || "",
-			name: opts.dbName || "",
-		};
+	// private _connectToDb(opts: SMTPOptions): Database {
+	// 	let dbOptions: DatabaseOptions = {
+	// 		host: opts.dbHost || "localhost",
+	// 		port: opts.dbPort || 27017,
+	// 		type: opts.dbType || DBType.MongoDB,
+	// 		user: opts.dbUser || "",
+	// 		pass: opts.dbPass || "",
+	// 		name: opts.dbName || "",
+	// 	};
 
-		return new Database(dbOptions);
-	}
+	// 	return new Database(dbOptions);
+	// }
 
 	private _createHTTPOptions(opts: SMTPOptions): HTTPOptions {
 		return {

@@ -17,17 +17,55 @@ export interface CommandData {
 	data?: string;
 }
 
-export class CommandParser {
+export interface CommandMessage {
+	mail?: string;
+	rcpt?: string;
+	data?: string;
+}
+
+
+export class CommandHandler {
 	command: Command | undefined;
+
 	value: string | undefined;
 
-	setCommandData(data: string) {
-		let index = data.indexOf(" ");
-		let command = data.substring(0, index > -1 ? index : undefined);
-		this.setCommandFromString(command);
+	private _isData: boolean = false;
+	get isData() {
+		return this._isData;
+	}
 
-		if (this.command !== undefined) {
-			this.value = data.substring(index + 1);
+	private _readyToSend: boolean = false;
+	get readyToSend() {
+		return this._readyToSend;
+	}
+
+	private _message: CommandMessage = {};
+	get message() {
+		return { ...this._message };
+	}
+
+	clear() {
+		this._isData = false;
+		this._readyToSend = false;
+		this._message = {};
+	}
+	
+	getCommandData(): CommandData {
+		return {
+			command: this.command,
+			data: this.value,
+		}
+	}
+
+	setCommandData(data: string) {
+		let command = data.substring(0, 4);
+		this.setCommandFromString(command);
+		this.value = data.substring(4).trim();
+
+		if (this.command === Command.DATA && !this.isData) {
+			this._isData = true;
+		} else if (this.command === undefined && this.isData && data.trim() === ".") {
+			this._readyToSend = true;
 		}
 	}
 
@@ -69,17 +107,6 @@ export class CommandParser {
 			default:
 				this.command = undefined;
 				break;
-		}
-	}
-
-	setValueFromString(value: string): void {
-		this.value = value;
-	}
-	
-	getCommandData(): CommandData {
-		return {
-			command: this.command,
-			data: this.value,
 		}
 	}
 }
