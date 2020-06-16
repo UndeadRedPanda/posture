@@ -132,7 +132,7 @@ export class Connection {
 	}
 	
 	async close(reason: string = "Closed by client") {
-		if (this.open) {
+		if (!this._closed) {
 			this._closed = true;
 			this.conn.close();
 
@@ -143,14 +143,7 @@ export class Connection {
 	}
 
 	private _data(commandData: CommandData, end: boolean = false) {
-		if (!end) {
-			this.writeLine("354 Begin data");
-		} else if (end) {
-			this._signal.resolve(this.commandHandler.message);
-			this._signal = deferred();
-			this.commandHandler.clear();
-			this._returnOK();
-		}
+		this.writeLine("354 Begin data");
 	}
 
 	private _expand(commandData: CommandData) {
@@ -161,49 +154,44 @@ export class Connection {
 	private async _handleData() {
 		for await (let data of this.requests) {
 			this.commandHandler.setCommandData(data);
-
-			if (typeof this.commandHandler.command !== 'undefined') {
-				let commandData = this.commandHandler.getCommandData();
-				let { command } = commandData; 
-				
-				switch (command) {
-					case Command.HELO:
-					case Command.EHLO:
-					case Command.RSET:
-						this._startCommand(commandData);
-						break;
-					case Command.MAIL:
-						this._mail(commandData);
-						break;
-					case Command.RCPT:
-						this._rcpt(commandData);
-						break;
-					case Command.DATA:
-						this._data(commandData);
-						break;
-					case Command.HELP:
-						this._help(commandData);
-						break;
-					case Command.VRFY:
-						this._verify(commandData);
-						break;
-					case Command.EXPN:
-						this._expand(commandData);
-						break;
-					case Command.QUIT:
-						this._quit();
-						break;
-					case Command.NOOP:
-						this._returnOK();
-						break;
-					default:
-						if (!this.commandHandler.isData) {
-							this._returnInvalid("Invalid command");
-						} else if (this.commandHandler.readyToSend) {
-							this._data(commandData, true);
-						}
-						break;
-				}
+			let commandData = this.commandHandler.getCommandData();
+			let command = commandData.command || ""; 
+			
+			switch (command) {
+				case Command.HELO:
+				case Command.EHLO:
+				case Command.RSET:
+					this._startCommand(commandData);
+					break;
+				case Command.MAIL:
+					this._mail(commandData);
+					break;
+				case Command.RCPT:
+					this._rcpt(commandData);
+					break;
+				case Command.DATA:
+					this._data(commandData);
+					break;
+				case Command.HELP:
+					this._help(commandData);
+					break;
+				case Command.VRFY:
+					this._verify(commandData);
+					break;
+				case Command.EXPN:
+					this._expand(commandData);
+					break;
+				case Command.QUIT:
+					this._quit();
+					break;
+				case Command.NOOP:
+					this._returnOK();
+					break;
+				default:
+					if (!this.commandHandler.isData) {
+						this._returnInvalid("Invalid command");
+					}
+					break;
 			}
 		}
 	}
@@ -223,7 +211,6 @@ export class Connection {
 
 	private _quit() {
 		this._quitting;
-		this._returnOK();
 		this._removeConnectionFn(this, "Closed by client");
 	}
 
@@ -272,7 +259,6 @@ export class Connection {
 
 	private _removeDroppedConnection() {
 		this._dropped = true;
-		this._signal.reject();
 		this._removeConnectionFn(this, "Connection dropped");
 	} 
 
