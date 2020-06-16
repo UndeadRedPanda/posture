@@ -1,11 +1,9 @@
 # Posture
-
 Posture is a simple configurable mock SMTP server to test your emails. It is not meant to actually deliver anything. This server was designed only for receiving and saving SMTP commands for development, debugging or testing purposes. 
 
-The SMTP server of this project implements the relevant parts of [RFC 2821](https://tools.ietf.org/html/rfc2821) to the best of my capacity/desire to for this project. If there are certain parts of the standard that you need that aren't supported or don't work as they should, feel free to make a PR or file an issue!
+The SMTP server of this project implements the relevant parts of [RFC 2821](https://tools.ietf.org/html/rfc2821) to the best of my capacity/desire to for this project. To see what we've implemented, you can peep [the implementation list](#implentation-details).f there are certain parts of the standard that you need that aren't supported or don't work as they should, feel free to make a PR or file an issue!
 
 ## How to use
-
 ```sh
 $ deno install --allow-net --allow-read --allow-write --allow-env path/to/repo
 ```
@@ -14,18 +12,6 @@ I don't think I need to tell you why we need net access. As for the other ones:
 - **read** for the config file and SQLite if you happen to use that;
 - **write** if you happen to use SQLite;
 - **env** to allow access to environment variables;
-
-## Supported SMTP commands
-- HELO/EHLO
-- MAIL
-- RCPT
-- DATA
-- RSET
-- VRFY
-- EXPN
-- HELP
-- QUIT
-- NOOP
 
 ## Supported Databases
 - MongoDB
@@ -38,19 +24,13 @@ denon start
 ```
 
 ### Testing
-
 TODO
 
 ## Contributing
-
 TODO
 
 ## TODO
 Here's a list of the tasks that are left to do:
-
-### Global
-#### Guarantees
-
 
 ### SMTP
 #### Guarantees
@@ -107,8 +87,10 @@ Here's a list of the tasks that are left to do:
 #### Maybes
 - Make a site branch with a nice little documentation (Could be docusaurus)
 
-## Notes
+## Implementation details
+- [Section 4.1](https://tools.ietf.org/html/rfc2821#section-4.1)
 
+## Notes
 This is my foray into actual FOSS I want to put out into the world. I'm super open to PRs and/or suggestions on how to properly maintain and collaborate these kinds of things. If you see something in this README that doesn't make sense, feel free to create an issue with your recommendations!
 
 ## License

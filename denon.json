@@ -14,7 +14,7 @@
 		},
 
 		"test": {
-			"cmd": "deno run test.ts",
+			"cmd": "test.ts",
 			"desc": "Run tests",
 			"watch": false
 		}

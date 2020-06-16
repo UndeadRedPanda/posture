@@ -6,12 +6,15 @@ import {
 	BufWriter, 
 	encode, 
 	decode,
-	concat
+	concat,
+	deferred, 
+	Deferred
 } from "./deps.ts";
 import { log } from "./utils.ts";
 import { Database } from "./database.ts";
 import { Command, CommandParser, CommandData } from "./command.ts";
 import { Configuration } from "./configuration.ts";
+import * as CONST from "./constants.ts";
 
 export class ConnectionManager {
 	private _connections: Connection[] = [];
@@ -25,49 +28,57 @@ export class ConnectionManager {
 		this.removeConnection = this.removeConnection.bind(this);
 	}
 
-	async addConnection(conn: Deno.Conn): Promise<Connection> {
+	async addConnection(conn: Deno.Conn): Promise<Connection | undefined> {
 		const connection = new Connection(conn, this.removeConnection);
 
 		if (this._connections.length >= Configuration.maxConnections()) {
-			await connection.writeString("Connection limit exceeded");
-			await this.removeConnection(connection);
-		} else {
-			this._connections.push(connection);
+			let reason = "Connection limit exceeded";
+			await connection.writeLine(reason);
+			await this.removeConnection(connection, reason);
+			return;
 		}
+
+		this._connections.push(connection);
+
+		connection.start();
+
+		// FIXME (William): The await inside listenForData seems to stop the connection from dropping
+		this._listenForData(connection);
 
 		return connection;
 	}
 
-	async removeConnection(connection: Connection, isDropped: boolean = false) {
+	async removeConnection(connection: Connection, reason: string) {
 		const index = this._connections.indexOf(connection);
 		if (index > -1) {
 			this._connections.splice(index, 1);
 		}
 		if (connection.quitting) {
 			this._buffer.push(connection.commands);
-			this._submitData();
 		}
 		try {
-			await connection.close(isDropped ? "Connection dropped" : "Concurrent connection limit reached");
+			await connection.close(reason);
 		} catch (err) {
 			// Do nothing somehow we couldn't close
 		}
 	}
 
-	private _submitData() {
-		if (!this._submitting) {
-			this._submitting = true;
+	private async _listenForData(connection: Connection) {
+		for await (let commands of connection.messages) {
+			console.log(commands);
+			// TODO (William): Save data
 		}
 	}
 }
 
+export type RemoveConnectionFn = {(connection: Connection, reason: string): void};
 
 export class Connection {
 	readonly commandParser: CommandParser = new CommandParser();
 
 	readonly connectedAt: Date = new Date();
 
-	private _removeConnectionFn: Function;
+	private _removeConnectionFn: RemoveConnectionFn;
 
 	private _commands: CommandData[] = [];
 	get commands() {
@@ -83,29 +94,36 @@ export class Connection {
 		return this._quitting;
 	}
 
+	private _dropped: boolean = false;
+
 	private _closed: boolean = false;
 	get closed() {
 		return this._closed;
+	}
+
+	get open(): boolean {
+		return !this._closed && !this._dropped && !this._quitting;
 	}
 
 	private _reader: BufReader;
 
 	private _writer: BufWriter;
 
-	public requests: AsyncGenerator<string, any, void>;
+	private _signal: Deferred<CommandData[]> = deferred();
 
-	constructor(conn: Deno.Conn, removeConnectionFn: Function) {
+	public requests: AsyncGenerator<string, any, void> = this._readFromConnection();
+
+	public messages: AsyncGenerator<CommandData[], any, void> = this._getMessages();
+
+	constructor(conn: Deno.Conn, removeConnectionFn: RemoveConnectionFn) {
 		this.conn = conn;
 		this._removeConnectionFn = removeConnectionFn;
-		this.requests = this._readFromConnection();
 		this._writer = new BufWriter(conn);
 		this._reader = new BufReader(conn);
 
 		if (Configuration.isDebug()) {
 			this._log("New connection opened.");
 		}
-
-		this._handleData();
 	}
 
 	getIp(): string {
@@ -115,14 +133,20 @@ export class Connection {
 	getRid(): number {
 		return this.conn.rid;
 	}
+
+	async start() {
+		this._welcome();
+		this._handleData();
+	}
 	
-	async writeString(str: string): Promise<Connection> {
+	async writeLine(str: string): Promise<this> {
+		if (!str.match(/\n$/)) str = `${str}\n`;
 		await this.write(encode(str));
 
 		return this;
 	}
 
-	async write(buffer: Uint8Array): Promise<Connection> {
+	async write(buffer: Uint8Array): Promise<this> {
 		try {
 			await this._writer.write(buffer);
 			await this._writer.flush();
@@ -134,7 +158,7 @@ export class Connection {
 	}
 	
 	async close(reason: string = "Closed by client") {
-		if (!this._closed) {
+		if (this.open) {
 			this._closed = true;
 			this.conn.close();
 
@@ -142,6 +166,36 @@ export class Connection {
 				this._log(`Connection was closed. ${gray(`(${reason})`)}`);
 			}
 		}
+	}
+
+	private _data(commandData: CommandData) {
+		// TODO (William);
+		let commands: CommandData[] = [];
+		commands.push({ command: Command.MAIL, data: "FROM: email"});
+		commands.push({ command: Command.RCPT, data: "TO: email"});
+		commands.push({ command: Command.DATA, data: "This is my email data"});
+
+		this._signal.resolve(commands);
+		this._signal = deferred();
+		this._returnOK();
+	}
+
+	private _expand(commandData: CommandData) {
+		// TODO (William);
+		this._returnOK();
+	}
+
+	private async * _getMessages(): AsyncGenerator<CommandData[], any, void> {
+		while(this.open) {
+			try {
+				let message = await this._signal;
+				yield message;
+			} catch (err) {
+				this._removeDroppedConnection();
+				return;
+			}
+		}
+		return;
 	}
 
 	private async _handleData() {
@@ -159,12 +213,16 @@ export class Connection {
 						this._startCommand(command === Command.RSET);
 						break;
 					case Command.MAIL:
+						this._mail(commandData);
+						break;
 					case Command.RCPT:
+						this._rcpt(commandData);
+						break;
 					case Command.DATA:
-						this._addCommand(commandData);
+						this._data(commandData);
 						break;
 					case Command.HELP:
-						this._showHelp(commandData);
+						this._help(commandData);
 						break;
 					case Command.VRFY:
 						this._verify(commandData);
@@ -174,41 +232,48 @@ export class Connection {
 						break;
 					case Command.QUIT:
 						this._quit();
+						break;
 					case Command.NOOP:
+						this._returnOK();
+						break;
 					default:
-						// There's really nothing to do here.
+						this.writeLine("503 invalid command");
+						// TODO (William): Figure out what an invalid command should return
 						break;
 				}
 			}
 		}
 	}
 
-	private _addCommand(commandData: CommandData) {
-		// TODO (William);
-		this.writeString("250 OK\n");
-	}
-
-	private _expand(commandData: CommandData) {
-		// TODO (William);
-		this.writeString("250 OK\n");
+	private _help(commandData: CommandData) {
+		this.writeLine("This is the help information\n");
 	}
 
 	private _log(message: string) {
 		log.default(`ℹ️  ${bold(yellow(`[IP: ${this.getIp()}][RID: ${this.getRid()}]`))} ${bold(this.connectedAt.toISOString())} - ${message}`);
 	}
 
-	private _quit() {
+	private _mail(commandData: CommandData) {
 		// TODO (William);
-		this.writeString("250 OK\n");
+		this._returnOK();
+	}
+
+	private _quit() {
 		this._quitting;
-		this.close();
+		this._returnOK();
+		this._removeConnectionFn(this, "Closed by client");
+	}
+
+	private _rcpt(commandData: CommandData) {
+		// TODO (William);
+		this._returnOK();
 	}
 
 	private async * _readFromConnection(): AsyncGenerator<string, any, void> {
 		// NOTE (William): We're assuming that if a connection returns EOF (null), we're not connected anymore. 
 		// I haven't searched for litterature that confirms this, but it seems logical enough.
 		try {
-			while(!this._closed) { 
+			while(this.open) { 
 				let str = await this._readLine();
 				if (str === null) {
 					this._removeDroppedConnection();
@@ -222,7 +287,6 @@ export class Connection {
 
 	private async _readLine(): Promise<string | null> {
 		let line: Uint8Array | undefined;
-
 		while(true) {
 			let result = await this._reader.readLine();
 			if (result === null) {
@@ -244,11 +308,13 @@ export class Connection {
 	}
 
 	private async _removeDroppedConnection() {
-		this._removeConnectionFn(this, true);
+		this._dropped = true;
+		this._signal.reject();
+		this._removeConnectionFn(this, "Connection dropped");
 	} 
 
-	private _showHelp(commandData: CommandData) {
-		this.writeString("This is the help information\n");
+	private async _returnOK() {
+		this.writeLine("250 OK\n");
 	}
 
 	private _startCommand(isReset: boolean = false) {
@@ -259,11 +325,15 @@ export class Connection {
 		}
 
 		this._commands = [];
-		this.writeString("250 OK\n");
+		this._returnOK();
 	}
 
 	private _verify(commandData: CommandData) {
 		// TODO (William);
-		this.writeString("250 OK\n");
+		this._returnOK();
+	}
+
+	private _welcome() {
+		this.writeLine(`220 Welcome to ${CONST.NAME} v${CONST.VERSION} - ${CONST.LINE} ©${CONST.COPYRIGHT}`);
 	}
 }

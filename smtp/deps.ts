@@ -23,10 +23,15 @@ export {
 	gray,
 	red,
 	blue
- } from "https://deno.land/std@0.56.0/fmt/colors.ts";
+} from "https://deno.land/std@0.56.0/fmt/colors.ts";
 
 export {
 	readJson
- } from "https://deno.land/std@0.56.0/fs/read_json.ts";
+} from "https://deno.land/std@0.56.0/fs/read_json.ts";
+
+export {
+	Deferred,
+	deferred
+} from "https://deno.land/std@0.56.0/async/mod.ts";
 
 // export * as DenoDB from 'https://deno.land/x/denodb/mod.ts';
