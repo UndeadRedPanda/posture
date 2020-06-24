@@ -1,7 +1,7 @@
-import { HTTPOptions, HTTPSOptions } from './deps.ts';
+import { HTTPOptions, HTTPSOptions } from '../deps.ts';
 import { ConnectionManager } from './connection.ts';
-import { DBType, Database, DatabaseOptions } from "./database/mod.ts";
-import { getValue } from './utils.ts';
+import { DBType, Database, DatabaseOptions } from "../database/mod.ts";
+import { getValue } from '../utils/mod.ts';
 import { Configuration } from './configuration.ts';
 
 /**
@@ -25,7 +25,7 @@ export interface SMTPOptions {
 }
 
 /**
- * SMTPServer is the base server that will take in SMTP commands and save the results to a database for the client
+ * SMTPServer is the server that will take in SMTP commands and save the results to a database for the server
  */
 export class SMTPServer {
 	readonly manager: ConnectionManager;
@@ -46,6 +46,8 @@ export class SMTPServer {
 		this.key = getValue(opts, "key", !!opts.useTLS) as string;
 		this.manager = new ConnectionManager();
 		
+		this.manager.initDatabase(opts);
+
 		this._setConfig(opts.configPath);
 		this._connect(opts);
 	}

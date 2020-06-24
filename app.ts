@@ -1,5 +1,5 @@
 import { SMTPServer } from './smtp/mod.ts';
+import { APIServer } from './api/mod.ts';
 
-new SMTPServer({
-	configPath: './posture-smtp.json'
-});
+new APIServer();
+new SMTPServer();

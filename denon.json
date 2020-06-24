@@ -3,7 +3,8 @@
 	
 	"allow": [
 		"net",
-		"read"
+		"read",
+		"env"
 	],
 
 	"scripts": {

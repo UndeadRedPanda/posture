@@ -1,0 +1,5 @@
+{
+	"debug": true,
+	"maxConnections": 1,
+	"saveEmailsToDatabase": true
+}

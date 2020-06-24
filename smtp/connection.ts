@@ -9,11 +9,12 @@ import {
 	concat,
 	deferred, 
 	Deferred
-} from "./deps.ts";
-import { log } from "./utils.ts";
+} from "../deps.ts";
+import { log } from "../utils/mod.ts";
 import { Command, CommandHandler, CommandData, CommandMessage } from "./command.ts";
 import { Configuration } from "./configuration.ts";
 import * as CONST from "./constants.ts";
+import { SMTPOptions } from "./server.ts";
 
 export class ConnectionManager {
 	private _connections: Connection[] = [];
@@ -39,6 +40,10 @@ export class ConnectionManager {
 		return connection;
 	}
 
+	async initDatabase(opts: SMTPOptions) {
+		
+	}
+
 	async removeConnection(connection: Connection, reason: string) {
 		const index = this._connections.indexOf(connection);
 		if (index > -1) {
@@ -49,6 +54,10 @@ export class ConnectionManager {
 		} catch (err) {
 			// Do nothing somehow we couldn't close
 		}
+	}
+
+	async saveMessage(message: CommandMessage) {
+		
 	}
 }
 
@@ -82,8 +91,6 @@ export class Connection {
 	private _reader: BufReader;
 
 	private _removeConnectionFn: RemoveConnectionFn;
-
-	private _signal: Deferred<CommandMessage> = deferred();
 
 	private _started: boolean = false;
 
@@ -143,7 +150,7 @@ export class Connection {
 	}
 
 	private _data(commandData: CommandData, end: boolean = false) {
-		this.writeLine("354 Begin data");
+		this.writeLine("354 Begin data; End with \".\" on its own line");
 	}
 
 	private _expand(commandData: CommandData) {
@@ -266,18 +273,20 @@ export class Connection {
 		this.writeLine(`554 ${reason}`);
 	}
 
-	private _returnOK() {
-		this.writeLine("250 OK");
+	private _returnOK(message?: string) {
+		this.writeLine(`250 ${message ? message : "OK"}`);
 	}
 
 	private _startCommand(commandData: CommandData) {
 		let isReset = commandData.command === Command.RSET;
 		let isExtendedHello = commandData.command === Command.EHLO;
+		let isNew = false;
 
 		if (isReset && !this._started) {
 			return;
 		} else if (!isReset && !this._started) {
 			this._started = true;
+			isNew = true;
 
 			if (isExtendedHello) {
 				// TODO (William): Implement the response format
@@ -285,7 +294,7 @@ export class Connection {
 		}
 
 		this.commandHandler.clear();
-		this._returnOK();
+		this._returnOK(isNew ? "Hey, you!" : undefined);
 	}
 
 	private _verify(commandData: CommandData) {

@@ -1,3 +1,5 @@
+import { isValidAddress } from "../utils/mod.ts";
+
 export enum Command {
 	HELO = "HELO",
 	EHLO = "EHLO",
@@ -19,7 +21,7 @@ export interface CommandData {
 
 export interface CommandMessage {
 	mail?: string;
-	rcpt?: string;
+	rcpt?: string[];
 	data?: string;
 }
 
@@ -64,8 +66,28 @@ export class CommandHandler {
 
 		if (this.command === Command.DATA && !this.isData) {
 			this._isData = true;
-		} else if (this.command === undefined && this.isData && data.trim() === ".") {
-			this._readyToSend = true;
+		} else if (this.command === undefined && this.isData) {
+			if (data.trim() === ".") {
+				this._readyToSend = true;
+			} else if (this._message.data) {
+				this._message.data += data;
+			} else {
+				this._message.data = data;
+			}
+		} else if (this.command === Command.MAIL) {
+			let email = this.value.substring(5).trim() // Skips "FROM:";
+			if (isValidAddress(email)) {
+				this._message.mail = email;
+			}
+		} else if (this.command === Command.RCPT) {
+			let email = this.value.substring(3).trim() // Skips "TO:";
+			if (isValidAddress(email)) {
+				if (this._message.rcpt instanceof Array) {
+					this._message.rcpt.push(email);
+				} else {
+					this._message.rcpt = [email];
+				}
+			}
 		}
 	}
 

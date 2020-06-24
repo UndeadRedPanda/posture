@@ -2,7 +2,7 @@ import {
 	red,
 	yellow,
 	blue
-} from './deps.ts';
+} from '../deps.ts';
 
 export function getValue<T, K extends keyof T>(opts: T, key: K, isMandatory: boolean):T[K] {
 	if (!opts[key] && isMandatory) {
@@ -10,6 +10,11 @@ export function getValue<T, K extends keyof T>(opts: T, key: K, isMandatory: boo
 	}
 
 	return opts[key];
+}
+
+const emailRegEx = /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
+export function isValidAddress(email: string): boolean {
+	return emailRegEx.test(email);
 }
 
 export const log = {

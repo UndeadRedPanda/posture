@@ -22,7 +22,9 @@ export {
 	yellow,
 	gray,
 	red,
-	blue
+	blue,
+	green,
+	white
 } from "https://deno.land/std@0.56.0/fmt/colors.ts";
 
 export {
@@ -35,3 +37,14 @@ export {
 } from "https://deno.land/std@0.56.0/async/mod.ts";
 
 // export * as DenoDB from 'https://deno.land/x/denodb/mod.ts';
+
+export { 
+	Application,
+	ApplicationOptions,
+	Context,
+	ListenOptions,
+	ListenOptionsBase,
+	ListenOptionsTls,
+	Router,
+	Status,
+} from 'https://deno.land/x/oak@v5.3.1/mod.ts';
