@@ -25,7 +25,7 @@ export const log = {
 		console.warn(`⚠️ ${yellow(message)}`);
 	},
 	info: (message: string) => {
-		console.warn(`ℹ️ ${blue(message)}`);
+		console.warn(`ℹ️  ${blue(message)}`);
 	},
 	error: (message: string | Error) => {
 		const toLog = message instanceof Error ? message : `🛑 ${red(message)}`;

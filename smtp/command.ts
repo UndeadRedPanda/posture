@@ -1,5 +1,14 @@
 import { isValidAddress } from "../utils/mod.ts";
 
+type CommandResponse = {
+	code?: number;
+	message?: string;
+	isReadyToSend?: boolean;
+}
+
+/**
+ * List of available commands
+ */
 export enum Command {
 	HELO = "HELO",
 	EHLO = "EHLO",
@@ -14,31 +23,41 @@ export enum Command {
 	HELP = "HELP"
 };
 
-export interface CommandData {
-	command?: Command;
-	data?: string;
+/**
+ * Response from the CommandHandler to the Connection.
+ */
+export interface CommandHandlerResponse {
+	code: number | undefined;
+	command: Command | undefined;
+	isReadyToSend: boolean;
+	message: string | undefined;
 }
 
+/**
+ * Message information parsed by the CommandHandler.
+ */
 export interface CommandMessage {
 	mail?: string;
 	rcpt?: string[];
 	data?: string;
 }
 
+const NOT_STARTED = () => ({
+	code: 503,
+	message: "Bad command sequence",
+});
 
+/**
+ * CommandHandler is responsible for parsing a message from the Connection to a 
+ * valid Command, storing the result of multiple commands and specifying when 
+ * it's ready to send the email.
+ */
 export class CommandHandler {
-	command: Command | undefined;
-
-	value: string | undefined;
+	private _started: boolean = false;
 
 	private _isData: boolean = false;
 	get isData() {
 		return this._isData;
-	}
-
-	private _readyToSend: boolean = false;
-	get readyToSend() {
-		return this._readyToSend;
 	}
 
 	private _message: CommandMessage = {};
@@ -48,87 +67,223 @@ export class CommandHandler {
 
 	clear() {
 		this._isData = false;
-		this._readyToSend = false;
 		this._message = {};
 	}
-	
-	getCommandData(): CommandData {
-		return {
-			command: this.command,
-			data: this.value,
-		}
-	}
 
-	setCommandData(data: string) {
-		let command = data.substring(0, 4);
-		this.setCommandFromString(command);
-		this.value = data.substring(4).trim();
+	parseCommand(data: string): CommandHandlerResponse {
+		let command = this._getCommandFromString(data.substring(0, 4));
+		let commandData = data.substring(4).trim();
+		let response: CommandResponse = {};
 
-		if (this.command === Command.DATA && !this.isData) {
-			this._isData = true;
-		} else if (this.command === undefined && this.isData) {
-			if (data.trim() === ".") {
-				this._readyToSend = true;
-			} else if (this._message.data) {
-				this._message.data += data;
-			} else {
-				this._message.data = data;
-			}
-		} else if (this.command === Command.MAIL) {
-			let email = this.value.substring(5).trim() // Skips "FROM:";
-			if (isValidAddress(email)) {
-				this._message.mail = email;
-			}
-		} else if (this.command === Command.RCPT) {
-			let email = this.value.substring(3).trim() // Skips "TO:";
-			if (isValidAddress(email)) {
-				if (this._message.rcpt instanceof Array) {
-					this._message.rcpt.push(email);
-				} else {
-					this._message.rcpt = [email];
-				}
-			}
-		}
-	}
-
-	setCommandFromString(word: string): void {
-		switch(word.toUpperCase()) {
+		switch (command) {
 			case Command.HELO:
-				this.command = Command.HELO;
-				break;
 			case Command.EHLO:
-				this.command = Command.EHLO;
+			case Command.RSET:
+				response = this._start(command, commandData);
 				break;
 			case Command.MAIL:
-				this.command = Command.MAIL;
+				response = this._mail(commandData);
 				break;
 			case Command.RCPT:
-				this.command = Command.RCPT;
+				response = this._rcpt(commandData);
 				break;
 			case Command.DATA:
-				this.command = Command.DATA;
-				break;
-			case Command.RSET:
-				this.command = Command.RSET;
+				response = this._data(commandData);
 				break;
 			case Command.VRFY:
-				this.command = Command.VRFY;
-				break;
-			case Command.NOOP:
-				this.command = Command.NOOP;
-				break;
-			case Command.QUIT:
-				this.command = Command.QUIT;
+				response = this._verify();
 				break;
 			case Command.EXPN:
-				this.command = Command.EXPN;
+				response = this._expand();
+				break;
+			case Command.NOOP:
+				response = this._noop();
 				break;
 			case Command.HELP:
-				this.command = Command.HELP;
+				response = this._help();
+				break;
+			case Command.QUIT:
+				response = this._quit();
 				break;
 			default:
-				this.command = undefined;
+				if (this.isData) {
+					response = this._handleData(data);
+				} else {
+					response = {
+						code: 500,
+						message: "Command not recognized",
+					}
+				}
 				break;
+		}
+
+		return {
+			code: response.code,
+			command,
+			isReadyToSend: response.isReadyToSend || false,
+			message: response.message,
+		};
+	}
+
+	private _data(data: string): CommandResponse {
+		if (!this._started) return NOT_STARTED();
+
+		this._isData = true;
+
+		return {
+			code: 354,
+			message: "Start mail input; end with <CRLF>.<CRLF>",
+		}
+	}
+
+	private _expand(): CommandResponse {
+		// TODO (William);
+		return {
+			code: 502,
+			message: "Command not implemented."
+		}
+	}
+	
+	private _getCommandFromString(word: string): Command | undefined {
+		let command = word.toUpperCase();
+		return command in Command ? Command[<keyof typeof Command>command] : undefined;
+	}
+
+	private _handleData(data: string): CommandResponse {
+		if (data.trim() === ".") {
+			return {
+				code: 250,
+				isReadyToSend: true,
+				message: "Message saved to database",
+			}
+		};
+		
+		if (this._message.data) {
+			this._message.data += data;
+		} else {
+			this._message.data = data;
+		}
+
+		return {
+			isReadyToSend: false,
+		};
+	}
+
+	private _help(): CommandResponse {
+		return {
+			code: 214,
+			message: "Read RFC 2821 for more information on how an SMTP server works or go to https://github.com/undeadredpanda/posture for information on this specific server implementation."
+		}
+	}
+
+	private _mail(data: string): CommandResponse {
+		if (!this._started) return NOT_STARTED();
+
+		let startsWithFrom = data.trim().toUpperCase().startsWith("FROM:");
+		let email = data.substring(5).trim() // Skips "FROM:";
+		let isValidEmail = isValidAddress(email);
+
+		if (!startsWithFrom) {
+			return {
+				code: 501,
+				message: 'MAIL command should start with "FROM:"',
+			};
+		}
+
+		if (!isValidEmail) {
+			return {
+				code: 501,
+				message: 'Please specify a valid email address',
+			};
+		}
+
+		if (this._message.mail) {
+			return {
+				code: 503,
+				message: 'MAIL command was already issued. RSET to set a new email',
+			}
+		}
+
+		this._message.mail = email;
+		return {
+			code: 250,
+			message: "OK",
+		};
+	}
+
+	private _noop(): CommandResponse {
+		return {
+			code: 250,
+			message: "OK"
+		}
+	}
+
+	private _quit(): CommandResponse {
+		return {
+			code: 221,
+			message: "Bye bye!",
+		}
+	}
+
+	private _rcpt(data: string): CommandResponse {
+		if (!this._started) return NOT_STARTED();
+
+		let startsWithTo = data.trim().toUpperCase().startsWith("TO:");
+		let email = data.substring(3).trim() // Skips "TO:";
+		let isValidEmail = isValidAddress(email);
+
+		if (!startsWithTo) {
+			return {
+				code: 501,
+				message: 'RCPT command should start with "TO:".',
+			};
+		}
+
+		if (!isValidEmail) {
+			return {
+				code: 501,
+				message: 'Please specify a valid email address',
+			};
+		}
+
+		if (this._message.rcpt) {
+			this._message.rcpt.push(email);
+		} else {
+			this._message.rcpt = [email];
+		}
+
+		return {
+			code: 250,
+			message: "OK",
+		};
+	}
+	
+	private _start(command: Command, data: string, ): CommandResponse {
+		let isReset = command === Command.RSET;
+		let isExtendedHello = command === Command.EHLO;
+		let isNew = false;
+
+		if (!isReset && !this._started) {
+			this._started = true;
+			isNew = true;
+
+			if (isExtendedHello) {
+				// TODO (William): Implement the response format
+			}
+		}
+
+		this.clear();
+		return {
+			code: 250,
+			message: isNew ? "Hey, you!" : "OK",
+		}
+	}
+
+	private _verify(): CommandResponse {
+		// TODO (William);
+		return {
+			code: 502,
+			message: "Command not implemented."
 		}
 	}
 }

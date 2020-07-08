@@ -44,7 +44,7 @@ export class SMTPServer {
 		this.port = opts.port || (!!opts.useTLS ? 465 : 25);
 		this.cert = getValue(opts, "cert", !!opts.useTLS) as string;
 		this.key = getValue(opts, "key", !!opts.useTLS) as string;
-		this.manager = new ConnectionManager();
+		this.manager = new ConnectionManager(this.hostname);
 		
 		this.manager.initDatabase(opts);
 

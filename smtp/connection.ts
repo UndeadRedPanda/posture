@@ -7,11 +7,9 @@ import {
 	encode, 
 	decode,
 	concat,
-	deferred, 
-	Deferred
 } from "../deps.ts";
 import { log } from "../utils/mod.ts";
-import { Command, CommandHandler, CommandData, CommandMessage } from "./command.ts";
+import { Command, CommandHandler, CommandMessage } from "./command.ts";
 import { Configuration } from "./configuration.ts";
 import * as CONST from "./constants.ts";
 import { SMTPOptions } from "./server.ts";
@@ -19,12 +17,12 @@ import { SMTPOptions } from "./server.ts";
 export class ConnectionManager {
 	private _connections: Connection[] = [];
 
-	constructor() {
+	constructor(private _ip: string) {
 		this.removeConnection = this.removeConnection.bind(this);
 	}
 
 	async addConnection(conn: Deno.Conn): Promise<Connection | undefined> {
-		const connection = new Connection(conn, this.removeConnection);
+		const connection = new Connection(conn, this._ip, this.removeConnection);
 
 		if (this._connections.length >= Configuration.maxConnections()) {
 			let reason = "Connection limit exceeded";
@@ -57,7 +55,7 @@ export class ConnectionManager {
 	}
 
 	async saveMessage(message: CommandMessage) {
-		
+
 	}
 }
 
@@ -65,8 +63,6 @@ export type RemoveConnectionFn = {(connection: Connection, reason: string): void
 
 export class Connection {
 	readonly commandHandler: CommandHandler = new CommandHandler();
-
-	readonly conn: Deno.Conn;
 
 	readonly connectedAt: Date = new Date();
 
@@ -90,15 +86,11 @@ export class Connection {
 
 	private _reader: BufReader;
 
-	private _removeConnectionFn: RemoveConnectionFn;
-
 	private _started: boolean = false;
 
 	private _writer: BufWriter;
 
-	constructor(conn: Deno.Conn, removeConnectionFn: RemoveConnectionFn) {
-		this.conn = conn;
-		this._removeConnectionFn = removeConnectionFn;
+	constructor(readonly conn: Deno.Conn, private _ip: string, private _removeConnectionFn: RemoveConnectionFn) {
 		this._writer = new BufWriter(conn);
 		this._reader = new BufReader(conn);
 
@@ -149,81 +141,38 @@ export class Connection {
 		}
 	}
 
-	private _data(commandData: CommandData, end: boolean = false) {
-		this.writeLine("354 Begin data; End with \".\" on its own line");
-	}
-
-	private _expand(commandData: CommandData) {
-		// TODO (William);
-		this._returnOK();
-	}
-
 	private async _handleData() {
 		for await (let data of this.requests) {
-			this.commandHandler.setCommandData(data);
-			let commandData = this.commandHandler.getCommandData();
-			let command = commandData.command || ""; 
+			let {isReadyToSend, command, code, message} = this.commandHandler.parseCommand(data);
 			
-			switch (command) {
-				case Command.HELO:
-				case Command.EHLO:
-				case Command.RSET:
-					this._startCommand(commandData);
-					break;
-				case Command.MAIL:
-					this._mail(commandData);
-					break;
-				case Command.RCPT:
-					this._rcpt(commandData);
-					break;
-				case Command.DATA:
-					this._data(commandData);
-					break;
-				case Command.HELP:
-					this._help(commandData);
-					break;
-				case Command.VRFY:
-					this._verify(commandData);
-					break;
-				case Command.EXPN:
-					this._expand(commandData);
-					break;
-				case Command.QUIT:
-					this._quit();
-					break;
-				case Command.NOOP:
-					this._returnOK();
-					break;
-				default:
-					if (!this.commandHandler.isData) {
-						this._returnInvalid("Invalid command");
-					}
-					break;
+			// NOTE (William): In an actual SMTP server implementation, this
+			// wouldn't be acceptable. However, since we don't really have the 
+			// same delivery requirements as an actual SMTP server, we can just 
+			// await the saving of the email to the database
+			if (isReadyToSend) {
+				let message = this.commandHandler.message;
+				// TODO (William): Send data
+				await this._saveEmailToDb(message);
+				console.log("💾 Saving message to database");
+			}
+
+			if (code && message) {
+				this.writeLine(`${code} ${message}`);
+			}
+
+			if (command === Command.QUIT) {
+				this._quit();
 			}
 		}
 	}
 
-	private _help(commandData: CommandData) {
-		this.writeLine("This is the help information");
-	}
-
 	private _log(message: string) {
-		log.default(`ℹ️  ${bold(yellow(`[IP: ${this.getIp()}][RID: ${this.getRid()}]`))} ${bold(this.connectedAt.toISOString())} - ${message}`);
-	}
-
-	private _mail(commandData: CommandData) {
-		// TODO (William);
-		this._returnOK();
+		log.info(`${bold(yellow(`[IP: ${this.getIp()}][RID: ${this.getRid()}]`))} ${bold(this.connectedAt.toISOString())} - ${message}`);
 	}
 
 	private _quit() {
-		this._quitting;
+		this._quitting = true;
 		this._removeConnectionFn(this, "Closed by client");
-	}
-
-	private _rcpt(commandData: CommandData) {
-		// TODO (William);
-		this._returnOK();
 	}
 
 	private async * _readFromConnection(): AsyncGenerator<string, any, void> {
@@ -267,42 +216,13 @@ export class Connection {
 	private _removeDroppedConnection() {
 		this._dropped = true;
 		this._removeConnectionFn(this, "Connection dropped");
-	} 
-
-	private _returnInvalid(reason: string) {
-		this.writeLine(`554 ${reason}`);
 	}
 
-	private _returnOK(message?: string) {
-		this.writeLine(`250 ${message ? message : "OK"}`);
-	}
-
-	private _startCommand(commandData: CommandData) {
-		let isReset = commandData.command === Command.RSET;
-		let isExtendedHello = commandData.command === Command.EHLO;
-		let isNew = false;
-
-		if (isReset && !this._started) {
-			return;
-		} else if (!isReset && !this._started) {
-			this._started = true;
-			isNew = true;
-
-			if (isExtendedHello) {
-				// TODO (William): Implement the response format
-			}
-		}
-
-		this.commandHandler.clear();
-		this._returnOK(isNew ? "Hey, you!" : undefined);
-	}
-
-	private _verify(commandData: CommandData) {
-		// TODO (William);
-		this._returnOK();
+	private async _saveEmailToDb(message: CommandMessage) {
+		
 	}
 
 	private _welcome() {
-		this.writeLine(`220 Welcome to ${CONST.NAME} v${CONST.VERSION} - ${CONST.LINE} ©${CONST.COPYRIGHT}`);
+		this.writeLine(`220 [${this._ip}] Welcome to ${CONST.NAME} v${CONST.VERSION}`);
 	}
 }

@@ -36,7 +36,7 @@ export {
 	deferred
 } from "https://deno.land/std@0.56.0/async/mod.ts";
 
-// export * as DenoDB from 'https://deno.land/x/denodb/mod.ts';
+export { Client, Pool } from "https://deno.land/x/postgres@v0.4.2/mod.ts";
 
 export { 
 	Application,
