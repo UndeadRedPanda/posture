@@ -36,7 +36,27 @@ export {
 	deferred
 } from "https://deno.land/std@0.56.0/async/mod.ts";
 
-export { Client, Pool } from "https://deno.land/x/postgres@v0.4.2/mod.ts";
+export { 
+	Database,
+	Model,
+	DataTypes 
+} from "https://deno.land/x/denodb@v1.0.4/mod.ts";
+
+export { 
+	MongoDBOptions 
+} from "https://deno.land/x/denodb@v1.0.4/lib/connectors/mongodb-connector.ts";
+
+export { 
+	PostgresOptions 
+} from "https://deno.land/x/denodb@v1.0.4/lib/connectors/postgres-connector.ts";
+
+export { 
+	MySQLOptions 
+} from "https://deno.land/x/denodb@v1.0.4/lib/connectors/mysql-connector.ts";
+
+export { 
+	SQLite3Options 
+} from "https://deno.land/x/denodb@v1.0.4/lib/connectors/sqlite3-connector.ts";
 
 export { 
 	Application,

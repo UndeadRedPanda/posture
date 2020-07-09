@@ -6,7 +6,7 @@ import {
 	ListenOptionsTls,
 	Router
 } from '../deps.ts';
-import { DBType, Database } from "../database/mod.ts";
+import { DatabaseType, MessagesDatabase } from "../database/mod.ts";
 import { logger, timer, cors } from './middlewares.ts';
 import { getValue } from '../utils/mod.ts';
 
@@ -21,7 +21,7 @@ export interface APIOptions {
 	useTLS?: boolean,
 	cert?: string,
 	key?: string,
-	dbType?: DBType,
+	dbType?: DatabaseType,
 	dbName?: string,
 	dbPort?: number,
 	dbHost?: string,
@@ -71,7 +71,6 @@ export class APIServer {
 		this.app.use(logger);
 		this.app.use(timer);
 		this.app.use(cors);
-		// TODO WT: Add a graphql middleware?
 	}
 
 	private _setupRoutes() {

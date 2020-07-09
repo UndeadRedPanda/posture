@@ -10,7 +10,7 @@ import {
 } from "../deps.ts";
 import { log } from "../utils/mod.ts";
 import { Command, CommandHandler, CommandMessage } from "./command.ts";
-import { Configuration } from "./configuration.ts";
+import { Configuration } from "../configuration/mod.ts";
 import * as CONST from "./constants.ts";
 import { SMTPOptions } from "./server.ts";
 
