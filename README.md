@@ -10,11 +10,22 @@ $ deno install --allow-net --allow-read --allow-write --allow-env path/to/repo
 
 I don't think I need to tell you why we need net access. As for the other ones:
 - **read** for the config file and SQLite if you happen to use that;
-- **write** if you happen to use SQLite;
+- **write** to use SQLite or MongoDB (Because of the plugin that needs to be written to disk);
 - **env** to allow access to environment variables;
+- **unstable** for plugins and MongoDB
+- **plugin** for MongoDB plugin
+
+## Dependencies
+- Client: TBD
+- API: [Oak](https://deno.land/x/oak)
+- SMTP: None.
+- Database: [DenoDB](https://deno.land/x/denodb)
 
 ## Supported Databases
 - MongoDB
+- PostgreSQL
+- MySQL
+- SQLite3
 
 ## Development
 ### Denon
@@ -35,12 +46,8 @@ Here's a list of the tasks that are left to do:
 ### SMTP
 #### Guarantees
 - 4.5.3.1 - Size limits and minimums
-- Connect to a PostgreSQL database
-- Save to Database
-- Get certain SMTP info from environment vars
 - Tests
 - Documentation
-- CI/CD
 
 #### Maybes
 - Handle commands that seem torequire lookups
@@ -49,18 +56,19 @@ Here's a list of the tasks that are left to do:
 	- [ ] EXPN
 - Implement some kind of communication system when new messages are added to the Database so a third-party could listen
 - Allow custom database drivers
+- CI/CD
 
 ### Server
 #### Guarantees
 - Basic REST API to get the available messages
 - Tests
 - Documentation
-- CI/CD
 
 #### Maybes
 - Run as SMTP + Server configuration
 - Add some auth to access the API to secure emails
 - Websocket or long polling connections to clients, SMTP Server or DB needs to implement some form of communication first
+- CI/CD
 
 ### Client
 #### Guarantees
@@ -89,24 +97,4 @@ This is my foray into actual FOSS I want to put out into the world. I'm super op
 ## Fun Facts
 I chose the name Posture because this is a tool written with Deno to test part of a communication system and dinosaurs used their posture to communicate certain things.<sup>[citation needed]</sup>
 
-## License
-
-Copyright © 2020 William Théroux
-
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
-
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
-
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+<small>Copyright © 2020 William Théroux</small>
