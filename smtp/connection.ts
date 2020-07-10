@@ -163,7 +163,7 @@ export class Connection {
 			}
 
 			if (code && message) {
-				this.writeLine(`${code} ${message}`);
+				await this.writeLine(`${code} ${message}`);
 			}
 
 			if (command === Command.QUIT) {

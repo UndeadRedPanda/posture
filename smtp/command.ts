@@ -126,7 +126,7 @@ export class CommandHandler {
 	}
 
 	private _data(data: string): CommandResponse {
-		if (!this._started) return NOT_STARTED();
+		if (!this._started || !this.message.mail || !this.message.rcpt) return NOT_STARTED();
 
 		this._isData = true;
 

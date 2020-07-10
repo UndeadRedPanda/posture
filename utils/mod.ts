@@ -12,7 +12,7 @@ export function getValue<T, K extends keyof T>(opts: T, key: K, isMandatory: boo
 	return opts[key];
 }
 
-const emailRegEx = /^[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*$/;
+const emailRegEx = /^<?[a-zA-Z0-9.!#$%&’*+/=?^_`{|}~-]+@[a-zA-Z0-9-]+(?:\.[a-zA-Z0-9-]+)*>?$/;
 export function isValidAddress(email: string): boolean {
 	return emailRegEx.test(email);
 }
