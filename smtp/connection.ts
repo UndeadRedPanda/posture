@@ -13,16 +13,19 @@ import { Command, CommandHandler, CommandMessage } from "./command.ts";
 import { Configuration } from "../configuration/mod.ts";
 import * as CONST from "./constants.ts";
 import { SMTPOptions } from "./server.ts";
+import { DatabaseOptions, MessagesDatabase } from "../database/mod.ts";
 
 export class ConnectionManager {
 	private _connections: Connection[] = [];
+	private _database: MessagesDatabase | undefined;
 
 	constructor(private _ip: string) {
 		this.removeConnection = this.removeConnection.bind(this);
+		this.saveMessage = this.saveMessage.bind(this);
 	}
 
 	async addConnection(conn: Deno.Conn): Promise<Connection | undefined> {
-		const connection = new Connection(conn, this._ip, this.removeConnection);
+		const connection = new Connection(conn, this._ip, this.removeConnection, this.saveMessage);
 
 		if (this._connections.length >= Configuration.maxConnections()) {
 			let reason = "Connection limit exceeded";
@@ -38,8 +41,9 @@ export class ConnectionManager {
 		return connection;
 	}
 
-	async initDatabase(opts: SMTPOptions) {
-		
+	async initDatabase(dbOpts: DatabaseOptions) {
+		this._database = new MessagesDatabase(dbOpts);
+		await this._database.setupDatabase();
 	}
 
 	async removeConnection(connection: Connection, reason: string) {
@@ -55,11 +59,14 @@ export class ConnectionManager {
 	}
 
 	async saveMessage(message: CommandMessage) {
-
+		if (this._database) {
+			await this._database.saveMessage(message);
+		}
 	}
 }
 
-export type RemoveConnectionFn = {(connection: Connection, reason: string): void};
+export type RemoveConnection = {(connection: Connection, reason: string): void};
+export type SaveMessage = {(message: CommandMessage): void};
 
 export class Connection {
 	readonly commandHandler: CommandHandler = new CommandHandler();
@@ -90,7 +97,7 @@ export class Connection {
 
 	private _writer: BufWriter;
 
-	constructor(readonly conn: Deno.Conn, private _ip: string, private _removeConnectionFn: RemoveConnectionFn) {
+	constructor(readonly conn: Deno.Conn, private _ip: string, private _removeConnection: RemoveConnection, private _saveMessage: SaveMessage) {
 		this._writer = new BufWriter(conn);
 		this._reader = new BufReader(conn);
 
@@ -151,9 +158,8 @@ export class Connection {
 			// await the saving of the email to the database
 			if (isReadyToSend) {
 				let message = this.commandHandler.message;
-				// TODO (William): Send data
 				await this._saveEmailToDb(message);
-				console.log("💾 Saving message to database");
+				this.commandHandler.clear();
 			}
 
 			if (code && message) {
@@ -167,12 +173,12 @@ export class Connection {
 	}
 
 	private _log(message: string) {
-		log.info(`${bold(yellow(`[IP: ${this.getIp()}][RID: ${this.getRid()}]`))} ${bold(this.connectedAt.toISOString())} - ${message}`);
+		log.info(`${bold(yellow(`[IP: ${this.getIp()}][RID: ${this.getRid()}]`))} ${bold(new Date().toISOString())} - ${message}`);
 	}
 
 	private _quit() {
 		this._quitting = true;
-		this._removeConnectionFn(this, "Closed by client");
+		this._removeConnection(this, "Closed by client");
 	}
 
 	private async * _readFromConnection(): AsyncGenerator<string, any, void> {
@@ -215,11 +221,17 @@ export class Connection {
 
 	private _removeDroppedConnection() {
 		this._dropped = true;
-		this._removeConnectionFn(this, "Connection dropped");
+		this._removeConnection(this, "Connection dropped");
 	}
 
 	private async _saveEmailToDb(message: CommandMessage) {
-		
+		this._log("💾 Saving message to database");
+
+		// FIXME: A more Deno way of doing this would be to make an async 
+		// generator on Connection that the manager could await
+		if (this._saveMessage) {
+			this._saveMessage(message);
+		}
 	}
 
 	private _welcome() {

@@ -6,7 +6,7 @@ import {
 	ListenOptionsTls,
 	Router
 } from '../deps.ts';
-import { DatabaseType, MessagesDatabase } from "../database/mod.ts";
+import { DatabaseType, MessagesDatabase, DatabaseOptions } from "../database/mod.ts";
 import { logger, timer, cors } from './middlewares.ts';
 import { getValue } from '../utils/mod.ts';
 
@@ -21,12 +21,7 @@ export interface APIOptions {
 	useTLS?: boolean,
 	cert?: string,
 	key?: string,
-	dbType?: DatabaseType,
-	dbName?: string,
-	dbPort?: number,
-	dbHost?: string,
-	dbUser?: string,
-	dbPass?: string,
+	dbOptions: DatabaseOptions,
 }
 
 /**
@@ -37,7 +32,7 @@ export class APIServer {
 
 	public router: Router = new Router();
 
-	constructor(opts: APIOptions = {}) {
+	constructor(opts: APIOptions) {
 		this._setupMiddlewares();
 		this._setupRoutes();
 		this._startListening(opts);

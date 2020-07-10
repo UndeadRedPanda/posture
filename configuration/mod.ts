@@ -5,13 +5,11 @@ import { readJson } from "../deps.ts";
 export interface ConfigurationOptions {
 	maxConnections: number;
 	debug: boolean;
-	saveEmailsToDatabase: boolean;
 } 
 
 let config: ConfigurationOptions = {
 	maxConnections: 1,
 	debug: false,
-	saveEmailsToDatabase: false,
 };
 
 export class Configuration {
@@ -34,9 +32,5 @@ export class Configuration {
 
 	static maxConnections(): number {
 		return config.maxConnections;
-	}
-
-	static saveEmailsToDatabase(): boolean {
-		return config.saveEmailsToDatabase;
 	}
 }

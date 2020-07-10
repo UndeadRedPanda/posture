@@ -2,10 +2,13 @@
 	"$schema": "https://deno.land/x/denon/schema.json",
 	
 	"allow": [
+		"env",
 		"net",
+		"plugin",
 		"read",
-		"env"
+		"write"
 	],
+	"unstable": true,
 
 	"scripts": {
 

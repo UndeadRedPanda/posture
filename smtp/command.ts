@@ -151,6 +151,7 @@ export class CommandHandler {
 
 	private _handleData(data: string): CommandResponse {
 		if (data.trim() === ".") {
+			this._isData = false;
 			return {
 				code: 250,
 				isReadyToSend: true,
