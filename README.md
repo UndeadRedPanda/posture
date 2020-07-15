@@ -61,7 +61,6 @@ Here's a list of the tasks that are left to do:
 
 ### Server
 #### Guarantees
-- Basic REST API to get and delete the available messages
 - Secure API
 - Tests
 - Documentation
