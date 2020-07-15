@@ -41,9 +41,8 @@ export class ConnectionManager {
 		return connection;
 	}
 
-	async initDatabase(dbOpts: DatabaseOptions) {
-		this._database = new MessagesDatabase(dbOpts);
-		await this._database.setupDatabase();
+	async initDatabase(db: MessagesDatabase) {
+		this._database = db;
 	}
 
 	async removeConnection(connection: Connection, reason: string) {

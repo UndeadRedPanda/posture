@@ -46,21 +46,23 @@ Here's a list of the tasks that are left to do:
 ### SMTP
 #### Guarantees
 - 4.5.3.1 - Size limits and minimums
+- Auth
 - Tests
 - Documentation
 
 #### Maybes
-- Handle commands that seem torequire lookups
+- Handle commands that seem to require lookups
 	- [ ] EHLO
 	- [ ] VRFY
 	- [ ] EXPN
-- Implement some kind of communication system when new messages are added to the Database so a third-party could listen
+- Implement some kind of communication system when new messages are added to the Database.
 - Allow custom database drivers
 - CI/CD
 
 ### Server
 #### Guarantees
-- Basic REST API to get the available messages
+- Basic REST API to get and delete the available messages
+- Secure API
 - Tests
 - Documentation
 

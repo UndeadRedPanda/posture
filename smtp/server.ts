@@ -15,7 +15,7 @@ export interface SMTPOptions {
 	useTLS?: boolean,
 	cert?: string,
 	key?: string,
-	dbOptions: DatabaseOptions,
+	db: MessagesDatabase,
 }
 
 /**
@@ -50,8 +50,8 @@ export class SMTPServer {
 
 		console.log(`🌎 SMTP Server listening at ${this.hostname}:${this.port}.`);
 		
-		if (opts.dbOptions) {
-			await this.manager.initDatabase(opts.dbOptions);
+		if (opts.db) {
+			await this.manager.initDatabase(opts.db);
 		}
 
 		for await (const conn of this._listener) {

@@ -21,7 +21,7 @@ export interface APIOptions {
 	useTLS?: boolean,
 	cert?: string,
 	key?: string,
-	dbOptions: DatabaseOptions,
+	db: MessagesDatabase,
 }
 
 /**
@@ -32,7 +32,10 @@ export class APIServer {
 
 	public router: Router = new Router();
 
+	private _database: MessagesDatabase;
+
 	constructor(opts: APIOptions) {
+		this._database = opts.db;
 		this._setupMiddlewares();
 		this._setupRoutes();
 		this._startListening(opts);
@@ -69,8 +72,33 @@ export class APIServer {
 	}
 
 	private _setupRoutes() {
-		// TODO WT: Setup fetching routes
+		this.router
+			.get('/api/v1/messages', async (context) => {
+				const page = context.request.url.searchParams.get('page');
+				const count = context.request.url.searchParams.get('count');
+				const data = await this._database.getMessages((count && Number(count)) || undefined, (page && Number(page)) || undefined);
+				context.response.headers.append("Content-Type", "application/json");
+				context.response.body = data;
+			})
+			.get('/api/v1/messages/:id', async (context) => {
+				const id = context?.params?.id;
+				const data = await this._database.getMessage(id);
+				context.response.headers.append("Content-Type", "application/json");
+				context.response.body = data;
+			})
+			.delete('/api/v1/messages', async (context) => {
+				const data = await this._database.deleteMessages();
+				context.response.headers.append("Content-Type", "application/json");
+				context.response.body = data;
+			})
+			.delete('/api/v1/messages/:id', async (context) => {
+				const id = context?.params?.id;
+				const data = await this._database.deleteMessage(id);
+				context.response.headers.append("Content-Type", "application/json");
+				context.response.body = data;
+			})
 		this.app.use(this.router.routes());
+		this.app.use(this.router.allowedMethods());
 	}
 
 	private async _startListening(opts: APIOptions) {
