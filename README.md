@@ -1,7 +1,7 @@
 # Posture
-Posture is a simple configurable mock SMTP server to test your emails built with Deno. It is not meant to actually deliver anything. This server was designed only for receiving and saving SMTP commands for development, debugging or testing purposes. 
+Posture is a simple configurable mock SMTP server to test your emails built with Deno. It is not meant to actually deliver anything. This server was designed only for receiving and saving SMTP commands for development or testing purposes. 
 
-The SMTP server of this project implements the relevant parts of [RFC 2821](https://tools.ietf.org/html/rfc2821) to the best of my capacity/desire to for this project. To see what we've implemented, you can peep [the implementation list](#implentation-details).f there are certain parts of the standard that you need that aren't supported or don't work as they should, feel free to make a PR or file an issue!
+The SMTP server of this project implements the relevant parts of [RFC 2821](https://tools.ietf.org/html/rfc2821) to the best of my capacity/desire to for this project. To see what is implemented, you can peep [the implementation list](#implentation-details). If there are certain parts of the standard that you need that aren't supported or don't work as they should, feel free to make a PR or file an issue!
 
 ## How to use
 ```sh
