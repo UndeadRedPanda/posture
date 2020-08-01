@@ -62,9 +62,11 @@ export {
 	Application,
 	ApplicationOptions,
 	Context,
+	isHttpError,
 	ListenOptions,
 	ListenOptionsBase,
 	ListenOptionsTls,
 	Router,
+	send,
 	Status,
 } from 'https://deno.land/x/oak@v5.3.1/mod.ts';
