@@ -1,6 +1,5 @@
 {
 	"$schema": "https://deno.land/x/denon/schema.json",
-	
 	"allow": [
 		"env",
 		"net",
@@ -8,21 +7,23 @@
 		"read",
 		"write"
 	],
-	"unstable": true,
-
+	"logger": {
+		"fullscreen": true
+	},
 	"scripts": {
-
 		"start": {
 			"cmd": "app.ts",
 			"desc": "Run alternator"
+			
 		},
-
 		"test": {
 			"cmd": "test.ts",
 			"desc": "Run tests",
 			"watch": false
 		}
+	},
+	"unstable": true,
+	"watcher": {
+		"skip": ["client/app/dist/*"]
 	}
 }
-  
-  

@@ -12,11 +12,11 @@ html *:after {
 body {
 	font-size: 1.8rem;
 	font-weight: bold;
-	font-family: 'Noto Sans', sans-serif;
+	font-family: var(--text-font);
 }
 
-h1, h2, h3 {
-	font-family: 'Zilla Sans', serif;
+h1, h2, h3, h4, h5, h6 {
+	font-family: var(--heading-font);
 }
 
 h1 {

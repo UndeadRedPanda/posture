@@ -5,7 +5,6 @@ import {
 	ListenOptionsBase, 
 	ListenOptionsTls,
 	Router,
-	send
 } from '../deps.ts';
 import { logger, timer, staticFiles, notFound } from './middlewares.ts';
 import { getValue } from '../utils/mod.ts';
@@ -36,8 +35,23 @@ export class ClientServer {
 
 	constructor(opts: ClientOptions) {
 		this.baseEndpoint = opts.baseEndpoint;
+		this._prepareApp(opts);
+	}
+
+	private async _prepareApp(opts: ClientOptions) {
+		await this._compileReactApp();
 		this._setupMiddlewaresAndRoutes();
 		this._startListening(opts);
+	}
+
+	private async _compileReactApp() {
+		const encoder = new TextEncoder();
+		const index = './client/app/index.tsx';
+		console.log("🛠  Compiling client app");
+		const [diagnostics, output] = await Deno.bundle(index, undefined, {
+			target: 'es5'
+		});
+		await Deno.writeFile('client/app/dist/js/bundle.js', encoder.encode(output), {});
 	}
 
 	private _getOptions(opts: ClientOptions): ListenOptions {
@@ -63,28 +77,22 @@ export class ClientServer {
 		}
 	}
 
-	private _setupMiddlewares() {
-	}
-
 	private _setupMiddlewaresAndRoutes() {
 		const root = `${Deno.cwd()}/client/app`;
 		const index = 'index.html';
 
+		async function redirect(context: Context) {
+			context.response.headers.set("X-Context-Send", "true");
+			await context.send({
+				root,
+				path: index,
+			});
+		}
+
 		this.router
-			.get('/', async (context: Context) => {
-				context.response.headers.set("X-Context-Send", "true");
-				await context.send({
-					root,
-					path: index,
-				});
-			})
-			.get('/message/:id', async (context: Context) => {
-				context.response.headers.set("X-Context-Send", "true");
-				await context.send({
-					root,
-					path: index,
-				});
-			})
+			.get('/', redirect)
+			.get('/message/:id', redirect)
+			.get('/settings', redirect)
 			// Setting up proxy to the API
 			.all('/api/(.*)', async (context: Context) => {
 				const response = await fetch(`${this.baseEndpoint}${context.request.url.pathname}${context.request.url.search}`, {

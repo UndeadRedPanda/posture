@@ -1,7 +1,7 @@
 # Posture
 Posture is a simple configurable mock SMTP server to test your emails built with Deno. It is not meant to actually deliver anything. This server was designed only for receiving and saving SMTP commands for development or testing purposes. 
 
-The SMTP server of this project implements the relevant parts of [RFC 2821](https://tools.ietf.org/html/rfc2821) to the best of my capacity/desire to for this project. To see what is implemented, you can peep [the implementation list](#implentation-details). If there are certain parts of the standard that you need that aren't supported or don't work as they should, feel free to make a PR or file an issue!
+The SMTP server of this project implements the relevant parts of [RFC 2821](https://tools.ietf.org/html/rfc2821) to the best of my capacity/desire to for this project. To see what is implemented, you can peep [the implementation list](#implementation-details). If there are certain parts of the standard that you need that aren't supported or don't work as they should, feel free to make a PR or file an issue!
 
 ## How to use
 ```sh
@@ -12,13 +12,13 @@ I don't think I need to tell you why we need net access. As for the other ones:
 - **read** for the config file and SQLite if you happen to use that;
 - **write** to use SQLite or MongoDB (Because of the plugin that needs to be written to disk);
 - **env** to allow access to environment variables;
-- **unstable** for plugins and MongoDB (deno_mongo through denodb)
+- **unstable** for plugins for MongoDB (deno_mongo through denodb) and for bundling the client app
 - **plugin** for MongoDB plugin (deno_mongo through denodb)
 
 Feel free to restrict allows such as read, write, env and plugin to the necessary paths.
 
 ## Dependencies
-- Client: TBD
+- Client: [React](https://reactjs.org)
 - API: [Oak](https://deno.land/x/oak)
 - SMTP: None.
 - Database: [DenoDB](https://deno.land/x/denodb)
