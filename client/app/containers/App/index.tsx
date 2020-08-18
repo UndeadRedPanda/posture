@@ -5,17 +5,19 @@ import {
 	Route,
 	Link
 } from "https://jspm.dev/react-router-dom@5.2.0";
+import { Messages } from '../Messages/index.tsx';
+import { Header } from '../../components/Header/index.tsx';
 
 export const App = () => (
 	<Router>
-		<h1>Posture</h1>
-		<div>We have routes</div>
+		<Header/>
+
 		<Switch>
 			<Route path="/settings">
 				<div>Settings</div>
 			</Route>
 			<Route exact path={["/", "/message/:id"]}>
-				<div>Messages</div>
+				<Messages/>
 			</Route>
 			<Route path="*">
 				<div>Error 404</div>
