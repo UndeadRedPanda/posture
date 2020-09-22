@@ -1,7 +1,5 @@
 // TODO (William): Allow config to be set outside of this file.
 
-import { readJson } from "../deps.ts";
-
 export interface ConfigurationOptions {
 	maxConnections: number;
 	debug: boolean;
@@ -18,7 +16,8 @@ export class Configuration {
 	}
 
 	static async setConfigWithPath(configPath: string) {
-		let json: unknown = await readJson(configPath);
+		let data = await Deno.readTextFile(configPath);
+		let json: unknown = JSON.parse(data);
 		this.setConfig(json as ConfigurationOptions);
 	}
 

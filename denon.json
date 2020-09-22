@@ -22,6 +22,7 @@
 			"watch": false
 		}
 	},
+	"tsconfig": "tsconfig.json",
 	"unstable": true,
 	"watcher": {
 		"match": ["*.*", "client/app/*"],
