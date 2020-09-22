@@ -20,4 +20,4 @@ new SMTPServer({ db });
 
 new APIServer({ db });
 
-new ClientServer({ baseEndpoint: 'http://0.0.0.0:3000' });
+new ClientServer({ baseEndpoint: 'http://0.0.0.0:3000', isProduction: false});

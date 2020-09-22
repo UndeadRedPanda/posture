@@ -9,6 +9,10 @@ import {
 import { logger, timer, staticFiles, notFound } from './middlewares.ts';
 import { getValue } from '../utils/mod.ts';
 
+const WATCH_DIR = './client/app';
+const SRC_FILE = './client/app/index.tsx';
+const OUT_FILE = 'client/app/dist/js/bundle.js';
+
 /**
  * APIOptions lists all options for the APIServer.
  * 
@@ -21,6 +25,7 @@ export interface ClientOptions {
 	cert?: string,
 	key?: string,
 	baseEndpoint: string,
+	isProduction: boolean,
 }
 
 /**
@@ -42,11 +47,17 @@ export class ClientServer {
 		await this._compileReactApp();
 		this._setupMiddlewaresAndRoutes();
 		this._startListening(opts);
+		if (opts.isProduction) {
+			const watcher = Deno.watchFs(WATCH_DIR);
+			for await(const event of watcher) {
+				await this._compileReactApp();
+			}
+		}
 	}
 
 	private async _compileReactApp() {
 		const encoder = new TextEncoder();
-		const index = './client/app/index.tsx';
+		const index = SRC_FILE;
 		console.log("🛠  Compiling client app");
 		const [diagnostics, output] = await Deno.bundle(index, undefined, {
 			target: 'es5'
