@@ -1,0 +1,1 @@
+export { SMTPServer, SMTPOptions } from "./server.ts";

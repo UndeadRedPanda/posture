@@ -1,0 +1,16 @@
+{
+	"compilerOptions": {
+	  "baseUrl": ".",
+	  "lib": ["esnext"],
+	  "module": "esnext",
+	  "moduleResolution": "node",
+	  "noEmit": true,
+	  "noImplicitAny": true,
+	  "pretty": true,
+	  "resolveJsonModule": true,
+	  "target": "esnext",
+	},
+	"include": [
+	  "./**/*.ts"
+	]
+  }
