@@ -46,7 +46,7 @@ export class MessagesDatabase {
 		return { data };
 	}
 
-	async getMessages(perPage: number = 1, page: number = 1) {
+	async getMessages(perPage: number = 10, page: number = 1) {
 		const clampedPage = Math.max(1, page)
 		const offset = (clampedPage - 1) * perPage;
 		const limit = this.isSQL ? perPage : perPage + offset;

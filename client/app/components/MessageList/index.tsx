@@ -1,6 +1,5 @@
 import React from 'https://jspm.dev/react@16.13.1';
 import { MessagesData } from '../../@types/index.ts';
-import { Link, useRouteMatch } from 'https:///jspm.dev/react-router-dom@5.2.0';
 import { MessageListItem } from '../MessageListItem/index.tsx';
 
 interface MessageListProps {
@@ -11,9 +10,11 @@ export const MessageList: React.FC<MessageListProps> = ({messages}: MessageListP
 	return (
 		<aside className="message-list">
 			<header className="message-list__header">
-				<h2>{messages?.data?.length} messages</h2>
+				<h2>{messages?.count} message{messages?.count !== 1 ? '' : 's'}</h2>
 			</header>
-			{/* <>{messages.data.map((message) => <MessageListItem message={message}>)}</> */}
+			{messages.data?.map((message: MessageData) => (
+				<MessageListItem key={message.id} message={message}/>
+			))}
 		</aside>
 	);
 };

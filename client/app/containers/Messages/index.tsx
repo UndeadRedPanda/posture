@@ -11,7 +11,7 @@ export const Messages = () => {
 			const json = await response.json();
 			setMessages(json);
 		})();
-	}, [setMessages]);
+	}, []);
 
 	return (
 		<>

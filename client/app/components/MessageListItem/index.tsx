@@ -10,6 +10,7 @@ export const MessageListItem: React.FC<MessageListItemProps> = ({message}: Messa
 	const { url } = useRouteMatch();
 	return (
 		<Link to={`${url}/${message.id}`} className="message-item">
+			{JSON.stringify(message)}
 			<div className="message-item__details">
 				<span className="message-item__title">Message title</span>
 				<span className="message-item__preview">Preview message</span>
