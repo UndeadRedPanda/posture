@@ -36,7 +36,9 @@ export class ClientServer {
 
 	public router: Router = new Router();
 
-	baseEndpoint: string;
+	public baseEndpoint: string;
+
+	private _isCompiling: boolean = false;
 
 	constructor(opts: ClientOptions) {
 		this.baseEndpoint = opts.baseEndpoint;
@@ -45,14 +47,13 @@ export class ClientServer {
 
 	private async _prepareApp(opts: ClientOptions) {
 		await this._compileReactApp();
+
+		if (!opts.isProduction) {
+			this._watchReactApp();
+		}
+
 		this._setupMiddlewaresAndRoutes();
 		this._startListening(opts);
-		if (opts.isProduction) {
-			const watcher = Deno.watchFs(WATCH_DIR);
-			for await(const event of watcher) {
-				await this._compileReactApp();
-			}
-		}
 	}
 
 	private async _compileReactApp() {
@@ -62,7 +63,10 @@ export class ClientServer {
 		const [diagnostics, output] = await Deno.bundle(index, undefined, {
 			target: 'es5'
 		});
+		this._isCompiling = true;
 		await Deno.writeFile('client/app/dist/js/bundle.js', encoder.encode(output), {});
+		this._isCompiling = false;
+		console.log("🛠  Compilation completed");
 	}
 
 	private _getOptions(opts: ClientOptions): ListenOptions {
@@ -127,5 +131,15 @@ export class ClientServer {
 
 		console.log(`🌎 Client Server listening at ${listeningOptions.hostname}:${listeningOptions.port}.`);
 		await this.app.listen(listeningOptions);
+	}
+
+	private async _watchReactApp() {
+		const watcher = Deno.watchFs(WATCH_DIR);
+		for await(const event of watcher) {
+			const isDist = event.paths[0].includes("app/dist");
+			if (!isDist && !this._isCompiling) {
+				this._compileReactApp();
+			}
+		}
 	}
 }

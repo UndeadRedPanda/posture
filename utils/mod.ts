@@ -32,3 +32,18 @@ export const log = {
 		console.error(toLog);
 	},
 }
+
+export function isWindowsOrWSL() {
+	const release = Deno.osRelease();
+
+	if (Deno.build.os === 'windows') return true;
+
+	if (release.toLowerCase().includes('microsoft')) return true;
+
+	try {
+		const version = Deno.readTextFileSync('/proc/version');
+		return version.toLowerCase().includes('microsoft');
+	} catch (e) {
+		return false;
+	}
+}

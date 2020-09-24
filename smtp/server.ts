@@ -1,7 +1,7 @@
 import { HTTPOptions, HTTPSOptions } from '../deps.ts';
 import { ConnectionManager } from './connection.ts';
 import { DatabaseType, MessagesDatabase, DatabaseOptions } from "../database/mod.ts";
-import { getValue } from '../utils/mod.ts';
+import { getValue, isWindowsOrWSL } from '../utils/mod.ts';
 import { Configuration } from '../configuration/mod.ts';
 
 /**
@@ -35,7 +35,7 @@ export class SMTPServer {
 
 	constructor(opts: SMTPOptions) {
 		this.hostname = opts.host || "0.0.0.0";
-		this.port = opts.port || (!!opts.useTLS ? 465 : 25);
+		this.port = opts.port || this._getDefaultPort(opts.useTLS);
 		this.cert = getValue(opts, "cert", !!opts.useTLS) as string;
 		this.key = getValue(opts, "key", !!opts.useTLS) as string;
 		this.manager = new ConnectionManager(this.hostname);
@@ -73,5 +73,11 @@ export class SMTPServer {
 			certFile: this.cert,
 			keyFile: this.key,
 		 };
+	}
+
+	private _getDefaultPort(useTLS: boolean | undefined): number {
+		if (isWindowsOrWSL()) return 2525;
+		if (useTLS) return 465;
+		return 25;
 	}
 }
