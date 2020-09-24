@@ -38,7 +38,7 @@ export class ClientServer {
 
 	public baseEndpoint: string;
 
-	private _isCompiling: boolean = false;
+	private _isCompiling = false;
 
 	constructor(opts: ClientOptions) {
 		this.baseEndpoint = opts.baseEndpoint;
@@ -60,11 +60,11 @@ export class ClientServer {
 		const encoder = new TextEncoder();
 		const index = SRC_FILE;
 		console.log("🛠  Compiling client app");
-		const [diagnostics, output] = await Deno.bundle(index, undefined, {
+		const [, output] = await Deno.bundle(index, undefined, {
 			target: 'es5'
 		});
 		this._isCompiling = true;
-		await Deno.writeFile('client/app/dist/js/bundle.js', encoder.encode(output), {});
+		await Deno.writeFile(OUT_FILE, encoder.encode(output), {});
 		this._isCompiling = false;
 		console.log("🛠  Compilation completed");
 	}

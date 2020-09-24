@@ -88,7 +88,7 @@ export class CommandHandler {
 				response = this._rcpt(commandData);
 				break;
 			case Command.DATA:
-				response = this._data(commandData);
+				response = this._data();
 				break;
 			case Command.VRFY:
 				response = this._verify();
@@ -125,7 +125,7 @@ export class CommandHandler {
 		};
 	}
 
-	private _data(data: string): CommandResponse {
+	private _data(): CommandResponse {
 		if (!this._started || !this.message.mail || !this.message.rcpt) return NOT_STARTED();
 
 		this._isData = true;

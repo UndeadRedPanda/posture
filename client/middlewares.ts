@@ -1,4 +1,4 @@
-import { Context, isHttpError, send, red, yellow, green, white } from '../deps.ts';
+import { Context, send, red, yellow, green, white } from '../deps.ts';
 
 export async function logger(ctx: Context, next: Function) {
 	await next();

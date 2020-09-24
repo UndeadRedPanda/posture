@@ -12,8 +12,7 @@ import { log } from "../utils/mod.ts";
 import { Command, CommandHandler, CommandMessage } from "./command.ts";
 import { Configuration } from "../configuration/mod.ts";
 import * as CONST from "./constants.ts";
-import { SMTPOptions } from "./server.ts";
-import { DatabaseOptions, MessagesDatabase } from "../database/mod.ts";
+import { MessagesDatabase } from "../database/mod.ts";
 
 export class ConnectionManager {
 	private _connections: Connection[] = [];

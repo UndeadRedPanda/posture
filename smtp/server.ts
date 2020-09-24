@@ -1,8 +1,7 @@
 import { HTTPOptions, HTTPSOptions } from '../deps.ts';
 import { ConnectionManager } from './connection.ts';
-import { DatabaseType, MessagesDatabase, DatabaseOptions } from "../database/mod.ts";
+import { MessagesDatabase } from "../database/mod.ts";
 import { getValue, isWindowsOrWSL } from '../utils/mod.ts';
-import { Configuration } from '../configuration/mod.ts';
 
 /**
  * SMTPOptions lists all options for the SMTPServer.
