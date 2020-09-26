@@ -60,12 +60,14 @@ The MVP for the Posture SMTP server allows basic testing of SMTP clients and val
 - Documentation
 
 #### Client
-- Choose framework
 - Data fetching mechanisms
 - List view of sent emails
 - Detail view of emails
 - Tests
 - Documentation
+
+#### Global
+- Default config when nothing is provided.
 
 ---
 
@@ -115,6 +117,6 @@ Handle the remaining items to complete the initial ideas behind Posture
 This is my foray into actual FOSS I want to put out into the world. I'm super open to PRs and/or suggestions on how to properly maintain and collaborate on these kinds of things. If you see something in this README that doesn't make sense, feel free to create an issue with your recommendations!
 
 ## Fun Facts
-I chose the name Posture because this is a tool written with Deno to test part of a communication system and dinosaurs used their posture to communicate certain things.<sup>[citation needed]</sup>
+I chose the name Posture because this is a tool written with Deno to test part of a communication system and dinosaurs used their posture to communicate certain things.<sup>[citation needed]</sup> The word Posture also includes "Post" as in mail, so there's that. Yeah.
 
 <small>Copyright © 2020 William Théroux</small>
