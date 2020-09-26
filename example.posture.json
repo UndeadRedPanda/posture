@@ -3,8 +3,13 @@
 	"maxConnections": 1,
 	"saveEmailsToDatabase": true,
 	"db": {
-		"type": "sqlite3",
-		"path": "./db.sql"
+		"type": "sqlite3"
+	},
+	"smtp": {
+		
+	},
+	"api": {
+
 	},
 	"client": {
 		"baseEndpoint": "http://0.0.0.0:3000",
