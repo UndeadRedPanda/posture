@@ -69,7 +69,9 @@ export class MessagesDatabase {
           this.opts.connectionOptions as PostgresOptions,
         );
       case DatabaseType.MySQL:
-        return new MySQLConnector(this.opts.connectionOptions as MySQLOptions);
+        return new MySQLConnector(
+          this.opts.connectionOptions as MySQLOptions,
+        );
       case DatabaseType.SQLite:
         return new SQLite3Connector(
           this.opts.connectionOptions as SQLite3Options,

@@ -118,7 +118,7 @@ export class APIServer {
   }
 
   private async _startListening(opts: APIOptions) {
-    let listeningOptions = this._getOptions(opts);
+    const listeningOptions = this._getOptions(opts);
 
     console.log(
       `🌎 API Server listening at ${listeningOptions.hostname}:${listeningOptions.port}.`,

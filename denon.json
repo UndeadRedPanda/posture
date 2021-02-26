@@ -13,7 +13,8 @@
 	"scripts": {
 		"start": {
 			"cmd": "app.ts",
-			"desc": "Run alternator"
+			"desc": "Run alternator",
+			"watch": true
 		},
 		"test": {
 			"cmd": "test.ts",
@@ -24,9 +25,6 @@
 	"tsconfig": "tsconfig.json",
 	"unstable": true,
 	"watcher": {
-		"match": [
-			"**/*"
-		],
 		"skip": [
 			"client/app/**/*"
 		]
