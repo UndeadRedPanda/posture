@@ -1,1 +1,2 @@
-export { SMTPServer, SMTPOptions } from "./server.ts";
+export { SMTPServer } from "./server.ts";
+export type { SMTPOptions } from "./server.ts";

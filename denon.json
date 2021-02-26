@@ -14,7 +14,6 @@
 		"start": {
 			"cmd": "app.ts",
 			"desc": "Run alternator"
-			
 		},
 		"test": {
 			"cmd": "test.ts",
@@ -25,7 +24,11 @@
 	"tsconfig": "tsconfig.json",
 	"unstable": true,
 	"watcher": {
-		"match": ["*.*", "client/app/*"],
-		"skip": ["client/app/dist/*"]
+		"match": [
+			"**/*"
+		],
+		"skip": [
+			"client/app/**/*"
+		]
 	}
 }

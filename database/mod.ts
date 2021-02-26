@@ -1,1 +1,2 @@
-export { DatabaseType, DatabaseOptions, MessagesDatabase } from './database.ts';
+export { DatabaseType, MessagesDatabase } from "./database.ts";
+export type { DatabaseOptions } from "./database.ts";

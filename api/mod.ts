@@ -1,1 +1,2 @@
-export { APIServer, APIOptions } from "./server.ts";
+export { APIServer } from "./server.ts";
+export type { APIOptions } from "./server.ts";

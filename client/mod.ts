@@ -1,4 +1,2 @@
-export {
-	ClientServer,
-	ClientOptions
-} from './server.ts';
+export { ClientServer } from "./server.ts";
+export type { ClientOptions } from "./server.ts";
