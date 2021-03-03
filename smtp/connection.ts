@@ -1,25 +1,46 @@
 import { bold, BufReader, BufWriter, concat, gray, yellow } from "../deps.ts";
+
 import { log, UTF8Transcoder } from "../utils/mod.ts";
-import { Command, CommandHandler, CommandMessage } from "./command.ts";
 import { Configuration } from "../configuration/mod.ts";
-import * as CONST from "./constants.ts";
 import { MessagesDatabase } from "../database/mod.ts";
+
+import * as CONST from "./constants.ts";
+import { Command, CommandHandler, CommandMessage } from "./command.ts";
+import { Queue } from "./queue.ts";
+
+enum ConnectionQueueMessageTypes {
+  Remove,
+  Save,
+}
+
+type ConnectionQueueRemoveMessage = {
+  connection: Connection;
+  reason: string;
+};
+
+type ConnectionQueueSaveMessage = {
+  message: CommandMessage;
+};
+
+type ConnectionQueueMessageData =
+  | ConnectionQueueRemoveMessage
+  | ConnectionQueueSaveMessage;
+
+type ConnectionQueueMessage = {
+  type: ConnectionQueueMessageTypes;
+  data: ConnectionQueueMessageData;
+};
 
 export class ConnectionManager {
   private _connections: Connection[] = [];
   private _database: MessagesDatabase | undefined;
 
-  constructor(private _ip: string) {
-    this.removeConnection = this.removeConnection.bind(this);
-    this.saveMessage = this.saveMessage.bind(this);
-  }
+  constructor(private _ip: string) {}
 
   async addConnection(conn: Deno.Conn): Promise<Connection | undefined> {
     const connection = new Connection(
       conn,
       this._ip,
-      this.removeConnection,
-      this.saveMessage,
     );
 
     if (this._connections.length >= Configuration.maxConnections()) {
@@ -29,15 +50,36 @@ export class ConnectionManager {
       return;
     }
 
-    this._connections.push(connection);
-
-    connection.startConnection();
+    this.startConnection(connection);
 
     return connection;
   }
 
   initDatabase(db: MessagesDatabase) {
     this._database = db;
+  }
+
+  async startConnection(connection: Connection) {
+    this._connections.push(connection);
+
+    connection.startConnection();
+
+    for await (const message of connection) {
+      switch (message.type) {
+        case ConnectionQueueMessageTypes.Remove: {
+          const { connection: c, reason: r } = message
+            .data as ConnectionQueueRemoveMessage;
+          this.removeConnection(c, r);
+          break;
+        }
+        case ConnectionQueueMessageTypes.Save: {
+          const { message: m } = message
+            .data as ConnectionQueueSaveMessage;
+          this.saveMessage(m);
+          break;
+        }
+      }
+    }
   }
 
   async removeConnection(connection: Connection, reason: string) {
@@ -59,12 +101,7 @@ export class ConnectionManager {
   }
 }
 
-export type RemoveConnection = {
-  (connection: Connection, reason: string): void;
-};
-export type SaveMessage = { (message: CommandMessage): void };
-
-export class Connection {
+export class Connection extends Queue<ConnectionQueueMessage> {
   readonly commandHandler: CommandHandler = new CommandHandler();
 
   readonly connectedAt: Date = new Date();
@@ -97,9 +134,9 @@ export class Connection {
   constructor(
     readonly conn: Deno.Conn,
     private _ip: string,
-    private _removeConnection: RemoveConnection,
-    private _saveMessage: SaveMessage,
   ) {
+    super();
+
     this._writer = new BufWriter(conn);
     this._reader = new BufReader(conn);
 
@@ -185,7 +222,13 @@ export class Connection {
 
   private _quit() {
     this._quitting = true;
-    this._removeConnection(this, "Closed by client");
+    this.enqueue({
+      type: ConnectionQueueMessageTypes.Remove,
+      data: {
+        connection: this,
+        reason: "Closed by client",
+      },
+    });
   }
 
   private async *_readFromConnection(): AsyncGenerator<
@@ -193,10 +236,11 @@ export class Connection {
     string | void,
     void
   > {
-    // NOTE (William): We're assuming that if a connection returns EOF (null), we're not connected anymore.
-    // I haven't searched for litterature that confirms this, but it seems logical enough.
     while (this.open) {
       const str = await this._readLine();
+      // NOTE (William): We're assuming that if a connection returns EOF (null), we're not connected anymore.
+      // I haven't searched for litterature that confirms this, but it seems logical enough.
+      // FIX (William): This probably fails when a user temporarily timesout? How to handle?
       if (str === null) {
         this._removeDroppedConnection();
         return "";
@@ -229,17 +273,24 @@ export class Connection {
 
   private _removeDroppedConnection() {
     this._dropped = true;
-    this._removeConnection(this, "Connection dropped");
+    this.enqueue({
+      type: ConnectionQueueMessageTypes.Remove,
+      data: {
+        connection: this,
+        reason: "Connection dropped",
+      },
+    });
   }
 
   private _saveEmailToDb(message: CommandMessage) {
     this._log("💾 Saving message to database");
 
-    // FIXME: A more Deno way of doing this would be to make an async
+    // FIX (William): A more Deno way of doing this would be to make an async
     // generator on Connection that the manager could await
-    if (this._saveMessage) {
-      this._saveMessage(message);
-    }
+    this.enqueue({
+      type: ConnectionQueueMessageTypes.Save,
+      data: { message },
+    });
   }
 
   private _welcome() {

@@ -17,7 +17,10 @@ export {
   yellow,
 } from "https://deno.land/std@0.88.0/fmt/colors.ts";
 
-export { deferred } from "https://deno.land/std@0.88.0/async/mod.ts";
+export {
+  deferred,
+  MuxAsyncIterator,
+} from "https://deno.land/std@0.88.0/async/mod.ts";
 export type { Deferred } from "https://deno.land/std@0.88.0/async/mod.ts";
 
 export {
