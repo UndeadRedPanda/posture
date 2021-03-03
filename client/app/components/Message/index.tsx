@@ -1,4 +1,4 @@
-import React from "https://jspm.dev/react@16.13.1";
+import React from "https://esm.sh/react";
 
 export const Message: React.FC = () => {
   return (

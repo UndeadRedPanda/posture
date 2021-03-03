@@ -1,17 +1,18 @@
-import React from "https://jspm.dev/react@16.13.1";
+import { Link } from "https://esm.sh/react-router-dom@5.2.0";
+
 import { MessageData } from "../../@types/index.ts";
-import { Link, useRouteMatch } from "https:///jspm.dev/react-router-dom@5.2.0";
 
 interface MessageListItemProps {
   message: MessageData;
 }
 
-export const MessageListItem: React.FC<MessageListItemProps> = (
-  { message }: MessageListItemProps,
-) => {
-  const { url } = useRouteMatch();
+export const MessageListItem: React.FC<MessageListItemProps> = ({
+  message,
+}) => {
+  console.log(message);
+
   return (
-    <Link to={`${url}/${message.id}`} className="message-item">
+    <Link to={`/message/${message.id}`} className="message-item">
       {JSON.stringify(message)}
       <div className="message-item__details">
         <span className="message-item__title">Message title</span>

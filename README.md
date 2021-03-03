@@ -7,12 +7,12 @@ The SMTP server of this project implements the relevant parts of [RFC 2821](http
 ## How to use
 
 ```sh
-$ deno install --allow-net --allow-read --allow-write --allow-env --allow-plugin --unstable path/to/repo
+$ deno install --allow-net --allow-read --allow-write --allow-env --allow-plugin --unstable path/to/repo/app.ts
 ```
 
 I don't think I need to tell you why we need net access. As for the other ones:
 
-- **read** for the config file and SQLite if you happen to use that;
+- **read** for the config file and SQLite if you happen to use that and serving static files for the front-end app;
 - **write** to use SQLite or MongoDB (Because of the MongoDB plugin that needs to be written to disk);
 - **env** to allow access to environment variables;
 - **unstable** for plugins for MongoDB (deno_mongo through denodb) and for bundling the client app;

@@ -1,4 +1,4 @@
-import React, { useEffect, useState } from "https://jspm.dev/react@16.13.1";
+import React, { useEffect, useState } from "https://esm.sh/react";
 import { MessageList } from "../../components/MessageList/index.tsx";
 import { Message } from "../../components/Message/index.tsx";
 

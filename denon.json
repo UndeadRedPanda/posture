@@ -26,7 +26,8 @@
 	"unstable": true,
 	"watcher": {
 		"skip": [
-			"client/app/**/*"
+			"client/app/**/*",
+			".vscode/**/*"
 		]
 	}
 }

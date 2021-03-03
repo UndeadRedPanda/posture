@@ -12,6 +12,7 @@ import { getValue, UTF8Transcoder } from "../utils/mod.ts";
 const WATCH_DIR = "./client/app";
 const SRC_FILE = "./client/app/index.tsx";
 const OUT_FILE = "client/app/dist/js/bundle.js";
+const OUT_FILE_MAP = "client/app/dist/js/bundle.js.map";
 
 /**
  * APIOptions lists all options for the APIServer.
@@ -60,14 +61,37 @@ export class ClientServer {
     const index = SRC_FILE;
     console.log("🛠  Compiling client app");
     this._isCompiling = true;
-    const { diagnostics, files } = await Deno.emit(index, {
-      compilerOptions: {
-        target: "es5",
-      },
-    });
-    await Deno.formatDiagnostics(diagnostics);
-    // TODO (william): Fix output of react bundle.
-    // await Deno.writeFile(OUT_FILE, UTF8Transcoder.encode(output), {});
+
+    try {
+      const { diagnostics, files } = await Deno.emit(index, {
+        bundle: "iife",
+        compilerOptions: {
+          esModuleInterop: true,
+          sourceMap: true,
+          jsx: "react",
+          lib: ["es5", "es6", "dom"],
+        },
+      });
+
+      if (diagnostics.length) {
+        console.log(await Deno.formatDiagnostics(diagnostics));
+      }
+
+      await Deno.writeFile(
+        OUT_FILE,
+        UTF8Transcoder.encode(files["deno:///bundle.js"]),
+      );
+
+      if (files["deno:///bundle.js.map"]) {
+        await Deno.writeFile(
+          OUT_FILE_MAP,
+          UTF8Transcoder.encode(files["deno:///bundle.js.map"]),
+        );
+      }
+    } catch (e) {
+      console.error(e);
+    }
+
     this._isCompiling = false;
     console.log("🛠  Compilation completed");
   }

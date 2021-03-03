@@ -21,6 +21,11 @@ export class Configuration {
     this.setConfig(json as ConfigurationOptions);
   }
 
+  // TODO (William): setConfig using environment vars
+  static async setConfigWithEnv() {
+    throw new Error("Not implemented yet");
+  }
+
   static setConfig(newConfig: ConfigurationOptions): void {
     config = { ...config, ...newConfig };
   }

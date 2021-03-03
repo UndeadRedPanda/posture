@@ -1,10 +1,10 @@
-import React from "https://jspm.dev/react@16.13.1";
+import React from "https://esm.sh/react";
 import {
   BrowserRouter as Router,
-  Link,
   Route,
   Switch,
 } from "https://jspm.dev/react-router-dom@5.2.0";
+
 import { Messages } from "../Messages/index.tsx";
 import { Header } from "../../components/Header/index.tsx";
 

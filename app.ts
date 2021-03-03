@@ -4,6 +4,8 @@ import { DatabaseType, MessagesDatabase } from "./database/mod.ts";
 import { Configuration } from "./configuration/mod.ts";
 import { ClientServer } from "./client/mod.ts";
 
+// TODO (William): Use environment vars first and then config file
+// Configuration.setupWithEnv();
 Configuration.setConfigWithPath("./posture.json");
 
 const db = new MessagesDatabase({
