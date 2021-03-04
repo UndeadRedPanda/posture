@@ -4,5 +4,8 @@
 		"jsx": "react",
 		"jsxFactory": "React.createElement",
 		"jsxFragmentFactory": "React.Fragment",
-	}
+	},
+	"exclude": [
+		"./client/app/dist/**/*"
+	]
 }

@@ -1,5 +1,5 @@
 {
-	"$schema": "https://deno.land/x/denon/schema.json",
+	"$schema": "https://deno.land/x/denon@2.4.7/schema.json",
 	"allow": [
 		"env",
 		"net",

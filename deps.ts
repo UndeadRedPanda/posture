@@ -1,11 +1,11 @@
 export type {
   HTTPOptions,
   HTTPSOptions,
-} from "https://deno.land/std@0.88.0/http/server.ts";
+} from "https://deno.land/std@0.89.0/http/server.ts";
 
-export { BufReader, BufWriter } from "https://deno.land/std@0.88.0/io/bufio.ts";
+export { BufReader, BufWriter } from "https://deno.land/std@0.89.0/io/bufio.ts";
 
-export { concat } from "https://deno.land/std@0.88.0/bytes/mod.ts";
+export { concat } from "https://deno.land/std@0.89.0/bytes/mod.ts";
 
 export {
   blue,
@@ -15,13 +15,13 @@ export {
   red,
   white,
   yellow,
-} from "https://deno.land/std@0.88.0/fmt/colors.ts";
+} from "https://deno.land/std@0.89.0/fmt/colors.ts";
 
 export {
   deferred,
   MuxAsyncIterator,
-} from "https://deno.land/std@0.88.0/async/mod.ts";
-export type { Deferred } from "https://deno.land/std@0.88.0/async/mod.ts";
+} from "https://deno.land/std@0.89.0/async/mod.ts";
+export type { Deferred } from "https://deno.land/std@0.89.0/async/mod.ts";
 
 export {
   Database,
