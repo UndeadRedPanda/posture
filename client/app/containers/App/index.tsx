@@ -1,4 +1,4 @@
-import React from "https://esm.sh/react";
+import React from "https://esm.sh/react@17.0.1";
 import {
   BrowserRouter as Router,
   Route,

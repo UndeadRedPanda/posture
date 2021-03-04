@@ -1,4 +1,4 @@
-import React from "https://esm.sh/react";
+import React from "https://esm.sh/react@17.0.1";
 import { Link } from "https://esm.sh/react-router-dom@5.2.0";
 
 import { MessageData } from "../../@types/index.ts";
