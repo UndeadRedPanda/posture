@@ -1,7 +1,7 @@
 import React from "https://esm.sh/react@17.0.1";
 
-import { MessagesData } from "../../@types/index.ts";
-import { MessageListItem } from "../MessageListItem/index.tsx";
+import { MessagesData } from "../@types/index.ts";
+import { MessageListItem } from "./MessageListItem.tsx";
 
 interface MessageListProps {
   messages: MessagesData;

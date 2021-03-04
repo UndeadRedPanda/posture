@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "https://esm.sh/react@17.0.1";
-import { MessageList } from "../../components/MessageList/index.tsx";
-import { Message } from "../../components/Message/index.tsx";
+import { MessageList } from "../components/MessageList.tsx";
+import { Message } from "../components/Message.tsx";
 
 export const Messages = () => {
   const [messages, setMessages] = useState({});
